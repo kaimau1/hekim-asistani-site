@@ -1,0 +1,146 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profil ve Üyelik - Hekim Plus</title>
+  <meta name="description" content="Hekim Plus profil ve üyelik sayfası. Giriş durumunuzu, üyelik planınızı, yazıcı kurulumu ve hesap işlemlerini tek ekranda yönetin.">
+  <link rel="stylesheet" href="style.css?v=20260501-profil">
+</head>
+<body class="profil-sayfasi profil-premium">
+  <header class="site-header profil-topbar">
+    <div class="container header-inner profil-topbar-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Hekim <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html" class="active">Profil ve Üyelik</a>
+      </nav>
+      <div class="profil-topbar-actions">
+        <button id="btnDestekMerkeziUst" class="btn btn-ikincil" type="button" hidden>Destek Merkezi</button>
+        <a href="giris.html" class="btn btn-birincil" id="profilTopbarGiris">Giriş Yap</a>
+        <a href="index.html" class="btn btn-ikincil">Siteye Dön</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="profil-shell">
+    <aside class="profil-sidebar" aria-label="Profil menüsü">
+      <div class="profil-sidebar-kisi">
+        <div class="profil-avatar profil-avatar-kucuk" id="profilAvatar">?</div>
+        <div>
+          <strong id="profilIsim">Giriş bekleniyor</strong>
+          <span id="profilMail">Profil bilgileri yüklenmedi</span>
+        </div>
+      </div>
+
+      <nav class="profil-menu">
+        <a href="index.html#hesapla"><span>▦</span> Hesapla</a>
+        <a href="profil.html" class="active"><span>♙</span> Profil Ayarları</a>
+      </nav>
+
+      <div class="profil-sidebar-alt">
+        <button id="btnDestekMerkezi" class="btn btn-ikincil" type="button">Destek Merkezi</button>
+        <button id="btnCikisYap" class="profil-logout" type="button">Çıkış Yap</button>
+      </div>
+    </aside>
+
+    <section class="profil-main">
+      <div class="profil-main-baslik">
+        <h1>Profil Ayarları</h1>
+        <p>Hesap bilgilerinizi, üyelik durumunuzu ve yazıcı kurulumunu tek ekrandan yönetin.</p>
+      </div>
+
+      <div class="profil-dashboard">
+        <div class="profil-dashboard-sol">
+          <article id="profilOzet" class="profil-status-card profil-kart">
+            <div class="profil-status-icon">✓</div>
+            <div>
+              <h2 id="profilDurumBaslik">Giriş durumu</h2>
+              <p id="profilDurumMetin">Hesabınıza güvenli şekilde bağlısınız.</p>
+            </div>
+          </article>
+
+          <article class="profil-kimlik-card profil-kart">
+            <div class="profil-avatar profil-avatar-buyuk" id="profilAvatarBuyuk">?</div>
+            <div class="profil-kimlik-metin">
+              <h2 id="profilIsimBuyuk">Giriş bekleniyor</h2>
+              <div class="profil-chip-row">
+                <span id="profilTier" class="profil-tier">Ücretsiz</span>
+                <span class="profil-tier profil-tier-nobet">Aktif</span>
+              </div>
+            </div>
+          </article>
+
+          <div class="profil-info-grid">
+            <article class="profil-info-card">
+              <span class="profil-info-icon">✉</span>
+              <div>
+                <span class="profil-bilgi-etiket">E-posta</span>
+                <strong id="profilEmail">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">◇</span>
+              <div>
+                <span class="profil-bilgi-etiket">Paket</span>
+                <strong id="profilPlan">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">□</span>
+              <div>
+                <span class="profil-bilgi-etiket">Hesap oluşturulma</span>
+                <strong id="profilOlusma">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">◷</span>
+              <div>
+                <span class="profil-bilgi-etiket">Son giriş</span>
+                <strong id="profilSonGiris">—</strong>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="profil-dashboard-sag">
+          <article class="profil-kart profil-side-card" id="yaziciKurulum" hidden>
+            <div class="profil-side-title">
+              <span class="profil-info-icon">▣</span>
+              <h2>Yazıcı Kurulumu</h2>
+            </div>
+            <div class="profil-kurulum-aksiyon profil-kurulum-aksiyon-dikey">
+              <a id="btnYaziciKurulum" class="btn btn-birincil btn-kilitli" href="uyelik.html" aria-disabled="true" tabindex="-1">Premium Gerekli</a>
+              <a id="btnYaziciKaldir" class="btn btn-ikincil" href="../kurulum-dosyalari/HekimPlus_YaziciKaldir.exe" download hidden>Kurulumu Kaldır</a>
+            </div>
+          </article>
+
+          <article class="profil-kart profil-side-card profil-kart-uyari" id="hesapIslemleri" hidden>
+            <div class="profil-kart-baslik">
+              <h2>Hesap işlemleri</h2>
+              <p>Çıkış ve kalıcı silme işlemleri burada görünür.</p>
+            </div>
+            <div class="profil-kurulum-aksiyon">
+              <button id="btnCikisYapSag" class="btn btn-ikincil" type="button">Çıkış Yap</button>
+            </div>
+            <div class="profil-sil-alan">
+              <p class="profil-sil-uyari">
+                Bu işlem geri alınamaz. Devam etmek için kutuya <b>SIL</b> yazın.
+              </p>
+              <input id="silOnay" type="text" placeholder="SIL" autocomplete="off" inputmode="text">
+              <button id="btnSilOnayla" class="btn btn-tehlike" type="button">Hesabı Kalıcı Olarak Sil</button>
+              <div id="profilSilDurum" class="profil-durum" aria-live="polite"></div>
+            </div>
+          </article>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="profil.js?v=20260502-profil6"></script>
+</body>
+</html>
