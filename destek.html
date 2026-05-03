@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Destek Merkezi - Ahek Plus</title>
+  <meta name="description" content="Ahek Plus destek merkezi. Giriş yapan kullanıcılar için site içi talep ve yanıt alanı.">
+  <link rel="stylesheet" href="style.css?v=20260503-destek4">
+</head>
+<body class="destek-sayfasi">
+  <header class="site-header destek-topbar">
+    <div class="container header-inner destek-topbar-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="destek.html" class="active">Destek Merkezi</a>
+      </nav>
+      <div class="destek-topbar-actions">
+        <a href="profil.html" class="btn btn-ikincil">Profile Dön</a>
+        <a href="index.html" class="btn btn-birincil">Siteye Dön</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="destek-shell">
+    <section class="destek-hero">
+      <div class="destek-hero-metin">
+        <span class="rozet rozet-minik" id="destekGirisRozet">Sadece giriş yapan kullanıcılar</span>
+        <h1>Destek Merkezi</h1>
+        <p>Talep açın, aynı sayfada yanıtları görün ve konuşmayı tek ekrandan sürdürün.</p>
+      </div>
+      <div class="destek-ozet" id="destekOzet" hidden>
+        <article class="destek-ozet-kart">
+          <span class="destek-ozet-etiket">Toplam talep</span>
+          <strong id="destekToplamTalep">0</strong>
+        </article>
+        <article class="destek-ozet-kart">
+          <span class="destek-ozet-etiket">Açık</span>
+          <strong id="destekAcikTalep">0</strong>
+        </article>
+        <article class="destek-ozet-kart">
+          <span class="destek-ozet-etiket">Bekleyen yanıt</span>
+          <strong id="destekBekleyenTalep">0</strong>
+        </article>
+      </div>
+    </section>
+
+    <section id="destekPanel" class="destek-panel" hidden>
+      <div class="destek-yerlesim">
+        <aside class="destek-sutun">
+          <article class="destek-kart">
+            <div class="destek-kart-baslik">
+              <h2>Yeni talep</h2>
+              <button id="btnYeniTalepAc" class="btn-metinsel" type="button">Aç / Kapat</button>
+            </div>
+            <form id="yeniTalepForm" class="destek-form" hidden>
+              <label class="destek-label">
+                <span>Konu</span>
+                <input id="talepKonu" type="text" maxlength="120" placeholder="Örn. giriş sorunu" required>
+              </label>
+              <label class="destek-label">
+                <span>Kategori</span>
+                <select id="talepKategori" required>
+                  <option value="">Seçin</option>
+                  <option value="Site">Site</option>
+                  <option value="Hesap">Hesap</option>
+                  <option value="Eklenti">Eklenti</option>
+                  <option value="Yazıcı">Yazıcı</option>
+                  <option value="Diğer">Diğer</option>
+                </select>
+              </label>
+              <label class="destek-label">
+                <span>Mesaj</span>
+                <textarea id="talepMesaj" rows="4" maxlength="2000" placeholder="Sorunu kısaca anlatın. Hasta verisi paylaşmayın." required></textarea>
+              </label>
+              <div class="destek-form-eylem">
+                <button type="submit" class="btn btn-birincil">Talep Oluştur</button>
+                <button id="btnTalepFormKapat" type="button" class="btn btn-ikincil">Kapat</button>
+              </div>
+              <div id="yeniTalepDurum" class="destek-durum" aria-live="polite"></div>
+            </form>
+          </article>
+
+          <article class="destek-kart">
+            <div class="destek-kart-baslik">
+              <h2>Taleplerim</h2>
+              <span id="destekTalepSayisi" class="destek-kart-rozet">0</span>
+            </div>
+            <div id="destekTalepListesi" class="destek-talep-listesi" aria-live="polite"></div>
+          </article>
+        </aside>
+
+        <section class="destek-sohbet">
+          <article class="destek-kart destek-sohbet-kart">
+            <div class="destek-sohbet-baslik">
+              <div>
+                <h2 id="aktifTalepKonu">Bir talep seçin</h2>
+                <p id="aktifTalepAlt">Listeden bir talep seçtiğinizde konuşma burada görünecek.</p>
+              </div>
+              <div id="aktifTalepRozetler" class="destek-rozet-satir" hidden></div>
+            </div>
+
+            <div id="destekMesajBos" class="destek-bos-durum">
+              Henüz bir konuşma yok. Soldan bir talep seçin ya da yeni bir talep açın.
+            </div>
+            <div id="destekMesajListesi" class="destek-mesaj-listesi" hidden></div>
+
+            <form id="yanitForm" class="destek-yanit-form" hidden>
+              <label class="destek-label">
+                <span>Yanıt yaz</span>
+                <textarea id="yanitMetni" rows="4" maxlength="2000" placeholder="Yanıtınızı buraya yazın." required></textarea>
+              </label>
+              <div class="destek-form-eylem">
+                <button type="submit" class="btn btn-birincil">Gönder</button>
+                <button id="btnYanitTemizle" type="button" class="btn btn-ikincil">Temizle</button>
+              </div>
+              <div id="yanitDurum" class="destek-durum" aria-live="polite"></div>
+            </form>
+          </article>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="auth.js?v=20260502-ui9"></script>
+  <script type="module" src="destek.js?v=20260503-destek7"></script>
+</body>
+</html>
