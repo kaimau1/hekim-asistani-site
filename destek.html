@@ -1,0 +1,117 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="domain-redirect.js?v=20260503-domain1"></script>
+  <title>İletişim - Ahek Plus</title>
+  <meta name="description" content="Ahek Plus iletişim sayfası. E-posta ve WhatsApp grup erişimi.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="style.css?v=20260524-sifre-goster1">
+</head>
+<body class="destek-sayfasi">
+  <header class="site-header destek-topbar">
+    <div class="container header-inner destek-topbar-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="destek.html" class="active">İletişim</a>
+      </nav>
+      <div class="destek-topbar-actions">
+        <a href="profil.html" class="btn btn-ikincil">Profile Dön</a>
+        <a href="index.html" class="btn btn-birincil">Siteye Dön</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="destek-shell">
+    <article class="destek-kart destek-tek-kart">
+      <div class="destek-kart-baslik">
+        <h2>İletişim</h2>
+        <span class="destek-kart-rozet">Hızlı erişim</span>
+      </div>
+      <div class="destek-tek-kart-icerik">
+        <div class="destek-tek-kart-sol">
+          <p class="destek-iletisim-aciklama">
+            Talep açmak yerine doğrudan e-posta veya WhatsApp grubundan bize ulaşabilirsiniz.
+          </p>
+          <p class="destek-iletisim-email">E-posta: <strong>ahekplus@gmail.com</strong></p>
+          <div class="destek-iletisim-eylem">
+            <a class="btn btn-ikincil" href="https://chat.whatsapp.com/BrxeFK9VPKQ2WCd2pOSGtd" target="_blank" rel="noreferrer">WhatsApp Grubu</a>
+          </div>
+          <p class="destek-durum destek-iletisim-not">Yanıtlar e-posta ve grup üzerinden iletilir.</p>
+        </div>
+        <div class="destek-tek-kart-sag">
+          <div class="destek-kart-baslik destek-qr-baslik">
+            <h3>WhatsApp QR Kodu</h3>
+            <span class="destek-kart-rozet">Tara ve katıl</span>
+          </div>
+          <p class="destek-qr-aciklama">Kameranızla QR kodu taratarak gruba hızlıca katılabilirsiniz.</p>
+          <img
+            class="destek-qr-gorsel"
+            src="assets/whatsapp-grup-qr.png"
+            alt="Ahek Plus WhatsApp grup davet QR kodu"
+            loading="lazy"
+            decoding="async"
+          >
+        </div>
+      </div>
+    </article>
+
+    <section id="destekPanel" class="destek-panel" hidden>
+      <div class="destek-yerlesim">
+        <aside class="destek-sutun">
+          <article class="destek-kart">
+            <div class="destek-kart-baslik">
+              <h2>Taleplerim</h2>
+              <span id="destekTalepSayisi" class="destek-kart-rozet">0</span>
+            </div>
+            <div id="destekTalepListesi" class="destek-talep-listesi" aria-live="polite"></div>
+          </article>
+        </aside>
+
+        <section class="destek-sohbet">
+          <article class="destek-kart destek-sohbet-kart">
+            <div class="destek-sohbet-baslik">
+              <div>
+                <h2 id="aktifTalepKonu">Bir talep seçin</h2>
+                <p id="aktifTalepAlt">Listeden bir talep seçtiğinizde konuşma burada görünecek.</p>
+              </div>
+              <div id="aktifTalepRozetler" class="destek-rozet-satir" hidden></div>
+            </div>
+
+            <div id="destekMesajBos" class="destek-bos-durum">
+              Henüz bir konuşma yok. Soldan bir talep seçin ya da yeni bir talep açın.
+            </div>
+            <div id="destekMesajListesi" class="destek-mesaj-listesi" hidden></div>
+
+            <form id="yanitForm" class="destek-yanit-form" hidden>
+              <label class="destek-label">
+                <span>Yanıt yaz</span>
+                <textarea id="yanitMetni" rows="4" maxlength="2000" placeholder="Yanıtınızı buraya yazın." required></textarea>
+              </label>
+              <div class="destek-form-eylem">
+                <button type="submit" class="btn btn-birincil">Gönder</button>
+                <button id="btnYanitTemizle" type="button" class="btn btn-ikincil">Temizle</button>
+              </div>
+              <div id="yanitDurum" class="destek-durum" aria-live="polite"></div>
+            </form>
+          </article>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="auth.js?v=20260524-sifre-goster1"></script>
+  <script type="module" src="destek.js?v=20260503-destek7"></script>
+</body>
+</html>
