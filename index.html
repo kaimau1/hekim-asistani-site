@@ -1,0 +1,718 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <script src="domain-redirect.js?v=20260503-domain1"></script>
+  <meta name="description" content="HYP hesapla: aile hekimi ve hemşireler için HYP hesaplama, ASÇ HYP, HYP katsayı hesabı, SINA takip, reçete ve e-Nabız akışlarını Ahek Plus ile hızlandırın.">
+  <meta name="keywords" content="hyp hesapla, hyp, hyp hesaplama, aile hekimi hyp, aile hekimi hyp hesaplama, asç hyp, asç hesaplama, hemşire hyp, hemşire hyp hesaplama, hyp katsayı, hyp katsayı hesabı, hyp katsayısı hesabı, sina takip, reçete yazdırma, e-nabız analiz, ahek plus">
+  <meta name="author" content="Fatih Şenel">
+  <meta name="theme-color" content="#0369a1">
+  <meta name="color-scheme" content="light only">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://ahekplus.com/">
+
+  <!-- Open Graph (Facebook, LinkedIn, WhatsApp vs.) -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Ahek Plus">
+  <meta property="og:locale" content="tr_TR">
+  <meta property="og:url" content="https://ahekplus.com/">
+  <meta property="og:title" content="HYP Hesapla | Aile Hekimi HYP Hesaplama ve ASÇ HYP - Ahek Plus">
+  <meta property="og:description" content="Aile hekimi ve hemşireler için HYP hesaplama, ASÇ HYP ve HYP katsayı hesabı. SINA takip, reçete ve e-Nabız akışlarını hızlandırın.">
+  <meta property="og:image" content="https://ahekplus.com/og-image.png">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="HYP Hesapla | Ahek Plus">
+  <meta name="twitter:description" content="Aile hekimi ve hemşireler için HYP hesaplama, ASÇ HYP ve HYP katsayı hesabı.">
+  <meta name="twitter:image" content="https://ahekplus.com/og-image.png">
+
+  <title>HYP Hesapla | Aile Hekimi HYP Hesaplama ve ASÇ HYP - Ahek Plus</title>
+  <link rel="stylesheet" href="style.css?v=20260524-cikis-yerel1">
+
+  <!-- Structured Data: SoftwareApplication schema -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Ahek Plus",
+    "operatingSystem": "Chrome OS, Windows, macOS, Linux",
+    "applicationCategory": "HealthApplication",
+    "description": "Aile hekimi ve hemşireler için HYP hesaplama, ASÇ HYP, HYP katsayı hesabı, reçete yazdırma, SINA takip, e-Nabız analiz ve e-Rapor otomasyon Chrome eklentisi.",
+    "keywords": "hyp hesapla, hyp, hyp hesaplama, aile hekimi hyp, aile hekimi hyp hesaplama, asç hyp, hemşire hyp, hemşire hyp hesaplama, hyp katsayı, hyp katsayı hesabı",
+    "url": "https://ahekplus.com/",
+    "inLanguage": "tr",
+    "author": {
+      "@type": "Person",
+      "name": "Fatih Şenel"
+    },
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "TRY"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "5",
+      "ratingCount": "1"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ═══ Header ═══ -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="#ust" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="#hesapla" class="active">HYP Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="destek.html">İletişim</a>
+      </nav>
+      <!-- v2: Auth alanı — Giriş/Profil -->
+      <div class="auth-alan">
+        <a id="btnAuthGiris" class="btn-auth-giris" href="giris.html">Giriş Yap</a>
+        <div id="authKullanici" class="auth-kullanici" hidden>
+          <button id="authAvatarBtn" class="auth-avatar-btn" type="button" aria-haspopup="true">
+            <img id="authAvatar" class="auth-avatar" alt="" hidden>
+            <span id="authAvatarInit" class="auth-avatar-init">?</span>
+          </button>
+          <span id="authSenkStatus" class="auth-senk-status">☁ Senkronize</span>
+          <div id="authKullaniciDrop" class="auth-kullanici-drop" hidden>
+            <div class="auth-drop-basini">
+              <div class="auth-drop-isim" id="authIsim">—</div>
+              <div class="auth-drop-mail" id="authMail">—</div>
+            </div>
+            <div class="auth-drop-ayrac"></div>
+            <button id="btnAuthCikis" class="auth-drop-btn" type="button">⏻ Çıkış Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-mobil" id="btnMobilNav" aria-label="Menü" aria-expanded="false">☰</button>
+    </div>
+    <nav class="mobil-panel" id="mobilPanel" hidden>
+        <a href="#hesapla" class="active">HYP Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+      <a href="#" data-auth-ac="giris" class="mobil-giris" id="mobilAuthGiris">Giriş / Kayıt</a>
+      <a href="profil.html" class="mobil-giris" id="mobilAuthProfil" hidden>Profil ve Üyelik</a>
+      <a href="#" class="mobil-giris" id="mobilAuthCikis" hidden>⏻ Çıkış Yap</a>
+    </nav>
+  </header>
+
+  <!-- ═══ Auth Modal ═══ -->
+
+  <div id="authModal" class="modal" hidden>
+    <div class="modal-backdrop" data-modal-kapat></div>
+    <div class="modal-icerik" role="dialog" aria-labelledby="authBaslik" aria-modal="true">
+      <button class="modal-kapat" type="button" data-modal-kapat aria-label="Kapat">×</button>
+      <div id="authBaslik" class="auth-modal-baslik">
+        <span class="auth-modal-ikon">🩺</span>
+        <div>
+          <div class="auth-modal-baslik-ana">Ahek Plus Hesabı</div>
+          <div class="auth-modal-baslik-alt">Ahek Plus ile giriş yap veya yeni hesap aç</div>
+        </div>
+      </div>
+
+      <div class="auth-sekme-bar" role="tablist">
+        <button class="auth-sekme-btn aktif" type="button" data-auth-sekme="giris" role="tab">Giriş</button>
+        <button class="auth-sekme-btn" type="button" data-auth-sekme="kayit" role="tab">Kayıt</button>
+      </div>
+
+      <!-- Giriş formu -->
+      <form class="auth-form aktif" id="authGirisForm" data-form="giris" novalidate>
+        <button type="button" class="btn-google btn-google-ust" data-google-giris>
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Google ile Giriş Yap</span>
+        </button>
+        <div class="auth-ayrac"><span>veya e-posta ile</span></div>
+        <label class="auth-label">
+          <span>E-posta</span>
+          <input type="email" id="girisEmail" placeholder="ornek@mail.com" required autocomplete="email" inputmode="email">
+        </label>
+        <label class="auth-label">
+          <span>Şifre</span>
+          <input type="password" id="girisSifre" placeholder="••••••••" required autocomplete="current-password" minlength="6">
+        </label>
+        <button type="submit" class="btn btn-birincil btn-blok">Giriş Yap</button>
+        <button type="button" class="btn-metinsel" data-sifre-sifirla>Şifremi unuttum</button>
+      </form>
+
+      <!-- Kayıt formu -->
+      <form class="auth-form" id="authKayitForm" data-form="kayit" novalidate>
+        <button type="button" class="btn-google btn-google-ust" data-google-giris>
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Google ile Kayıt Ol</span>
+        </button>
+        <div class="auth-ayrac"><span>veya e-posta ile</span></div>
+        <label class="auth-label">
+          <span>Ad Soyad <em>(opsiyonel)</em></span>
+          <input type="text" id="kayitAd" placeholder="Dr. Ad Soyad" autocomplete="name">
+        </label>
+        <label class="auth-label">
+          <span>E-posta</span>
+          <input type="email" id="kayitEmail" placeholder="ornek@mail.com" required autocomplete="email" inputmode="email">
+        </label>
+        <label class="auth-label">
+          <span>Şifre <em>(min. 6 karakter)</em></span>
+          <input type="password" id="kayitSifre" placeholder="••••••••" required autocomplete="new-password" minlength="6">
+        </label>
+        <button type="submit" class="btn btn-birincil btn-blok">Kayıt Ol</button>
+        <p class="auth-kvkk">
+          Kayıt olarak <b>KVKK</b> kapsamında e-posta adresinizin
+          giriş amacıyla işlenmesini onaylarsınız. Sağlık/hasta verisi saklanmaz.
+        </p>
+      </form>
+
+      <!-- Şifre sıfırlama -->
+      <form class="auth-form" id="authSifirlaForm" data-form="sifirla" novalidate>
+          <p class="auth-bilgi">
+            Ahek Plus hesabınıza bağlı e-posta adresinizi girin — sıfırlama bağlantısı gönderelim.<br>
+            <small style="color:#d97706">⚠️ Mail gelmezse <b>spam/gereksiz</b> klasörünü kontrol edin.</small>
+          </p>
+        <label class="auth-label">
+          <span>E-posta</span>
+          <input type="email" id="sifirlaEmail" placeholder="ornek@mail.com" required autocomplete="email" inputmode="email">
+        </label>
+        <button type="submit" class="btn btn-birincil btn-blok">Sıfırlama Maili Gönder</button>
+        <button type="button" class="btn-metinsel" data-sekme-geri="giris">← Giriş ekranına dön</button>
+      </form>
+
+      <div class="auth-durum" id="authDurum" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- ═══ Hesapla ═══ -->
+  <section class="hesapla" id="hesapla">
+    <div class="container">
+      <!-- Sekme seçici -->
+      <div class="sekme-secici" role="tablist">
+        <button class="sekme-btn aktif" data-sekme="hypv2" role="tab" aria-selected="true">HYP Hesapla</button>
+        <button class="sekme-btn" data-sekme="asc" role="tab" aria-selected="false">👩‍⚕️ ASÇ Hesaplama</button>
+      </div>
+      <!-- Panel: Yeni HYP Hesapla -->
+      <div class="hesap-panel aktif" id="panel-hypv2" role="tabpanel">
+        <div class="hesap-ust-aksiyon">
+          <span class="aksiyon-bilgi">📊 HYP verilerini çekmek için eklentimiz ve mobil uygulamamız yakında</span>
+          <button id="btnHafizaAl" type="button" class="btn btn-ai-ghost" title="Mevcut değerleri hafızaya al — senaryo denemelerinden sonra geri getirmek için">💾 Hafızaya Al</button>
+          <button id="btnHafizaGetir" type="button" class="btn btn-ai-ghost" title="Hafızada kayıtlı değerleri geri yükle">↩ Geri Getir</button>
+          <button id="hypV2GoruntuToggle" type="button" class="btn btn-ai-ghost gor-toggle" title="Tek sütun / iki sütun görünüm — 2 sütunda tüm kriterler tek ekrana sığar">⫴ İki Sütun</button>
+        </div>
+        <div class="mobil-nufus-kart-alan" id="hypV2MobilNufusAlan" hidden></div>
+        <div class="ust-kartlar ust-kartlar-sticky">
+          <div class="ust-kart nufus-kart" id="hypV2NufusKart">
+            <div class="nufus-ust-satir">
+              <div class="kart-etk">Nüfus</div>
+              <select id="hypV2NufusTip" class="nufus-tip-dd" aria-label="Nüfus tipi">
+                <option value="3500" selected>Standart (3500)</option>
+                <option value="dusuk">Düşük (2400)</option>
+              </select>
+            </div>
+            <input type="number" id="hypV2Nufus" min="0" placeholder="" inputmode="numeric" aria-label="Nüfus">
+          </div>
+          <div class="ust-kart" id="hypV2MaasKart">
+            <div class="kart-ust-satir">
+              <div class="kart-alt kart-alt-ham">
+                <span>Başarı Katsayısı: <b id="hypV2HamKS">—</b></span>
+              </div>
+              <div class="kart-etk">Maaşa Esas Katsayı</div>
+              <div class="kart-alt kart-alt-tavan">Tavan: <span id="hypV2TavanKS">—</span></div>
+            </div>
+            <div class="kart-deger kart-deger-satir">
+              <span id="hypV2MaasKS">—</span>
+              <span class="kart-basarili" id="hypV2BasariDurum" data-gizli="1">Başarılı</span>
+            </div>
+            <span class="kart-hedef" id="hypV2HedefKSSatir" data-gizli="1">
+              <span class="kart-hedef-etk">🎯 Hedef tutarsa</span>
+              <b id="hypV2HedefKS">—</b>
+              <span class="kart-hedef-detay" title="Nüfusunuz için tavan katsayınıza göre hesaplanır.">Size yansıyan <b id="hypV2HedefTavanliKS">—</b></span>
+            </span>
+          </div>
+          <div class="ust-kart kht-kart">
+            <div class="kart-deger kart-deger-satir" id="hypV2KhtVal">
+              <span class="kht-etk">KHT:</span>
+              <span class="kht-yuzde">—</span>
+            </div>
+            <span class="kart-hedef kht-hedef-satir" id="hypV2HedefKhtSatir" data-gizli="1">
+              <span class="kart-hedef-etk">🎯 Hedef tutarsa</span>
+              <b id="hypV2HedefKht">—</b>
+            </span>
+            <div class="kart-alt" id="hypV2KhtOran">—</div>
+            <div class="kht-serit">
+              <div class="kht-dolgu" id="hypV2KhtDolgu"></div>
+              <div class="kht-isaret" style="left:40%"><span>40<small id="hypV2Kht40Ger"></small></span></div>
+              <div class="kht-isaret" style="left:70%"><span>70<small id="hypV2Kht70Ger"></small></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="tablo-sarmal" id="hypV2TabloSarmal">
+          <div class="mobil-hedef-aksiyon" id="hypV2MobilHedefAksiyon" hidden>
+            <div class="mobil-hedef-aksiyon-baslik">
+              <span class="hedef-ai-ikon">✨</span>
+              <span>AI ile Hedef Hesapla</span>
+            </div>
+            <button type="button" class="btn btn-ai-ghost btn-tumu-sifirla mobil-tumu-sifirla" data-tumu-tablo="hypv2" title="Tüm değerleri sıfırla">↺ Tümünü Temizle</button>
+          </div>
+          <table class="kriter-tablo" id="hypV2Tablo">
+            <thead>
+              <tr>
+                <th data-kolon="kriter" class="kriter-tumu-th">
+                  <div class="kriter-baslik-kapsam">
+                    <span>Kriter</span>
+                    <button type="button" class="btn btn-ai-ghost btn-tumu-sifirla kriter-tumu-sifirla" data-tumu-tablo="hypv2" title="Tüm değerleri sıfırla">↺ Tümünü Temizle</button>
+                  </div>
+                </th>
+                <th data-kolon="g"><span class="kolon-baslik">Gereken</span><button class="kolon-sifirla" data-tablo="hypv2" data-sif="G" title="Gereken sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="y"><span class="kolon-baslik">Yapılan</span><button class="kolon-sifirla" data-tablo="hypv2" data-sif="Y" title="Yapılan sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="d"><span class="kolon-baslik">Devir</span><button class="kolon-sifirla" data-tablo="hypv2" data-sif="D" title="Devir sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="hedef" class="hedef-ai-th">
+                  <div class="hedef-baslik-satir">
+                    <span>Hedef</span>
+                    <small class="hedef-surukle-ipucu" title="Çubuktaki mavi hedef çizgisini sağa-sola sürükleyerek hedef değeri belirleyebilirsiniz.">↔ mavi çizgiyi sürükle</small>
+                  </div>
+                  <div class="hedef-ai-header">
+                    <div class="hedef-ai-metin">
+                      <span class="hedef-ai-ikon">✨</span>
+                      <span>AI Hedef</span>
+                    </div>
+                    <div class="hedef-ai-actions">
+                      <button type="button" class="btn btn-ai" data-modal-ac="hypV2ProfilModal">⚙ Ayarla</button>
+                      <button type="button" class="btn btn-ai-vurgu" data-ai-tablo="hypv2" title="AI ile hedefleri optimize et">✨ Hesapla</button>
+                      <button id="hypV2HedefSifirla" type="button" class="btn btn-ai-ghost btn-temizle-hedef" title="Sadece hedefleri temizle">↺ Temizle</button>
+                    </div>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="hypV2KriterlerBody"></tbody>
+          </table>
+          <!-- 2 sütun modunda kullanılır (satırlar buraya taşınır), normalde gizli -->
+          <table class="kriter-tablo ikinci-tablo" id="hypV2Tablo2" hidden>
+            <thead></thead>
+            <tbody id="hypV2KriterlerBody2"></tbody>
+          </table>
+        </div>
+
+        <p class="bilgi-notu">
+          ℹ️ Değerler bu cihazda saklanır, sayfayı kapatsanız da kalır.
+          <a href="giris.html"><b>Giriş yaparsanız</b></a> tüm cihazlarınız arasında otomatik senkronize olur.
+        </p>
+        <div class="maas-farki-satir" id="hypV2MaasFarkiSatir">
+          <label class="maas-farki-giris" for="hypV2NufusPuani">
+            <span>Nüfus puanı</span>
+            <input type="number" id="hypV2NufusPuani" min="0" step="0.01" placeholder="TR ort." inputmode="decimal" aria-label="Nüfus puanı">
+          </label>
+          <span class="maas-farki-sonuc">
+            Tavan ile şu anki puan arasındaki maaş farkı:
+            <b id="hypV2MaasFarki">—</b>
+          </span>
+          <span class="maas-farki-uyari">Tahminidir, yaklaşık değer verir.</span>
+          <span class="maas-farki-kaynak" id="hypV2MaasFarkiKaynak">Türkiye ortalaması</span>
+        </div>
+        <div class="tanitim-ust-bant container">
+          <div class="tur-baslat-sarmal" id="turBaslatSarmal">
+            <button type="button" class="btn-site-turu" id="btnSiteTuru" title="Siteyi adım adım tanıtır">🎯 Tanıtım Turu — İlk kez mi?</button>
+            <button type="button" class="tur-turu-kapat" id="btnSiteTuruKapat" aria-label="Tanıtım turunu kapat" onclick="siteTuruKapat()">✕</button>
+          </div>
+          <span class="rozet rozet-minik">Yakında yayında · Chrome eklentisi ve mobil uygulamamız</span>
+        </div>
+      </div>
+
+      <!-- Panel: ASÇ -->
+      <div class="hesap-panel" id="panel-asc" role="tabpanel">
+        <div class="mobil-nufus-kart-alan" id="ascMobilNufusAlan" hidden></div>
+        <div class="ust-kartlar ust-kartlar-sticky">
+          <div class="ust-kart nufus-kart" id="ascNufusKart">
+            <div class="kart-etk">Nüfus</div>
+            <input type="number" id="ascNufus" min="0" placeholder="— kişi" inputmode="numeric">
+            <select id="ascNufusTip" class="nufus-tip-dd" aria-label="Nüfus tipi">
+              <option value="3500" selected>Standart (3500)</option>
+              <option value="dusuk">Düşük (2400)</option>
+            </select>
+          </div>
+          <div class="ust-kart" id="ascKatsayiKart">
+            <div class="kart-etk">ASÇ Katsayısı</div>
+            <div class="kart-deger" id="ascKS">—</div>
+            <div class="kart-alt" title="Hekim HYP'nin nüfusa göre tavanı × 0.75 — hekim en yüksek katsayıya ulaşırsa şart 2 için geçmeniz gereken değer">Hekim Max olursa gereken: <span id="ascGerekenMax">—</span></div>
+            <div class="kart-hedef" id="ascHedefKSSatir" data-gizli="1">
+              <span class="kart-hedef-etk">🎯 Hedef tutarsa</span>
+              <b id="ascHedefKS">—</b>
+            </div>
+          </div>
+          <div class="ust-kart nufus-kart">
+            <div class="kart-etk">Hekim HYP <small class="kart-etk-alt">HYP'den otomatik</small></div>
+            <input type="number" id="ascHekimKS" min="0" max="9.9999" step="0.0001" placeholder="— otomatik —" inputmode="decimal" title="Hekim HYP katsayısı (ham değer)">
+            <div class="kart-alt">Şu an yapılması gereken: <span id="ascEsik">—</span></div>
+          </div>
+        </div>
+
+        <!-- Kompakt tek satır durum: 2 şart + sonuç + hedef tahmini -->
+        <div class="asc-durum-strip" id="ascDurum">Kriterleri girerek başlayın</div>
+
+        <!-- AI Hedef kartı -->
+        <div class="ai-hedef-kart">
+          <div class="ai-hedef-sol">
+            <span class="ai-ikon">✨</span>
+            <div>
+              <div class="ai-baslik">AI ile Hedef Hesapla</div>
+              <div class="ai-alt">Her kriter için hedef % + efor belirle, Optimize et.</div>
+            </div>
+          </div>
+          <div class="ai-hedef-sag">
+            <button type="button" class="btn btn-ai" data-modal-ac="ascProfilModal">⚙ Ayarla</button>
+            <button type="button" class="btn btn-ai-vurgu" data-ai-tablo="asc" title="AI ile hedefleri optimize et">✨ Hesapla</button>
+            <button id="ascHedefSifirla" type="button" class="btn btn-ai-ghost btn-temizle-hedef" title="Sadece hedefleri temizle">↺ Hedefi Temizle</button>
+            <button type="button" class="btn btn-ai-ghost btn-tumu-sifirla" data-tumu-tablo="asc" title="Tüm değerleri sıfırla">↺ Tümünü Temizle</button>
+          </div>
+        </div>
+
+        <div class="tablo-sarmal">
+          <table class="kriter-tablo" id="ascTablo">
+            <thead>
+              <tr>
+                <th data-kolon="kriter">Kriter</th>
+                <th data-kolon="g"><span class="kolon-baslik">Gereken</span><button class="kolon-sifirla" data-tablo="asc" data-sif="G" title="Gereken sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="y"><span class="kolon-baslik">Yapılan</span><button class="kolon-sifirla" data-tablo="asc" data-sif="Y" title="Yapılan sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="d"><span class="kolon-baslik">Devir</span><button class="kolon-sifirla" data-tablo="asc" data-sif="D" title="Devir sütununu sıfırla" type="button">↺</button></th>
+                <th data-kolon="hedef">Hedef
+                  <button class="kolon-sifirla" data-tablo="asc" data-sif="H" title="Hedef sütununu sıfırla" type="button">↺</button>
+                </th>
+              </tr>
+            </thead>
+            <tbody id="ascKriterlerBody"></tbody>
+          </table>
+        </div>
+
+        <p class="bilgi-notu">
+          ℹ️ ASÇ başarılı sayılması için <b>hem</b> katsayının 1'i geçmesi <b>hem</b> hekim HYP'nin %75'ini aşması gerekir.
+          Değerler cihazda saklanır; giriş yaparsanız buluta da senkronize olur.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Tanıtım ═══ -->
+  <section class="tanitim" id="tanitim">
+    <div class="container">
+      <div class="bolum-baslik">
+        <h2>Eklentimiz neler yapıyor?</h2>
+        <p>Sık işleri tek akışta toplar, gereksiz tıklamaları azaltır.</p>
+      </div>
+
+      <div class="tanitim-ozet">
+        <div class="tanitim-ozet-kart">
+          <strong>~1 saat</strong>
+          <span>günlük toplu zaman kazancı</span>
+        </div>
+        <div class="tanitim-ozet-kart">
+          <strong>Tek akış</strong>
+          <span>aynı işi daha kısa yoldan bitirme</span>
+        </div>
+        <div class="tanitim-ozet-kart">
+          <strong>Daha az tık</strong>
+          <span>ekranlar arasında dolaşmadan çalışma</span>
+        </div>
+      </div>
+
+      <div class="ozellik-grid">
+        <article class="ozellik" style="--ozellik-renk:linear-gradient(90deg,#2563eb,#1e40af);--ozellik-ton:#2563eb">
+          <div class="ozellik-ust">
+            <div class="ozellik-ikon" style="background:linear-gradient(135deg,#2563eb,#1e40af)">💊</div>
+            <div class="ozellik-meta">
+              <h3>Reçetem</h3>
+              <span class="ozellik-alt-baslik">Reçete akışını sadeleştirir</span>
+            </div>
+            <span class="ozellik-rozet">~15 dk</span>
+          </div>
+          <p class="ozellik-ozet">Yazım ve imza işlerini daha kısa bir akışa indirir.</p>
+          <ul class="ozellik-liste">
+            <li>Yazım ve imza adımlarını hızlandırır</li>
+            <li>Tanı ve ilaç eklemeyi tek adıma indirir</li>
+            <li>Tekrarlayan reçete işlerini toparlar</li>
+          </ul>
+        </article>
+        <article class="ozellik" style="--ozellik-renk:linear-gradient(90deg,#0369a1,#0c4a6e);--ozellik-ton:#0369a1">
+          <div class="ozellik-ust">
+            <div class="ozellik-ikon" style="background:linear-gradient(135deg,#0369a1,#0c4a6e)">📘</div>
+            <div class="ozellik-meta">
+              <h3>HYP Otomasyonu</h3>
+              <span class="ozellik-alt-baslik">HYP işlemlerini tek yerde toplar</span>
+            </div>
+            <span class="ozellik-rozet">~15 dk</span>
+          </div>
+          <p class="ozellik-ozet">Aynı işi tekrar tekrar açmadan akışı hızlandırır.</p>
+          <ul class="ozellik-liste">
+            <li>HYP işlemlerini tek akışta toplar</li>
+            <li>Tekrarlanan adımları azaltır</li>
+            <li>İşle + İlerle akışını hızlandırır</li>
+          </ul>
+        </article>
+        <article class="ozellik" style="--ozellik-renk:linear-gradient(90deg,#16a34a,#15803d);--ozellik-ton:#16a34a">
+          <div class="ozellik-ust">
+            <div class="ozellik-ikon" style="background:linear-gradient(135deg,#16a34a,#15803d)">📊</div>
+            <div class="ozellik-meta">
+              <h3>SINA</h3>
+              <span class="ozellik-alt-baslik">Sık kullanılan sayfalara hız verir</span>
+            </div>
+            <span class="ozellik-rozet">~15 dk</span>
+          </div>
+          <p class="ozellik-ozet">En çok ihtiyaç duyulan sayfalara kısa yoldan götürür.</p>
+          <ul class="ozellik-liste">
+            <li>Sık kullanılan sayfalara tek tıkla ulaştırır</li>
+            <li>En çok işe yarayan sayfalara hızlı erişim sağlar</li>
+            <li>Gereksiz tıklamaları azaltır</li>
+          </ul>
+        </article>
+        <article class="ozellik" style="--ozellik-renk:linear-gradient(90deg,#d97706,#b45309);--ozellik-ton:#d97706">
+          <div class="ozellik-ust">
+            <div class="ozellik-ikon" style="background:linear-gradient(135deg,#d97706,#b45309)">🩺</div>
+            <div class="ozellik-meta">
+              <h3>E-Nabız</h3>
+              <span class="ozellik-alt-baslik">Tanı, ilaç ve rapor akışını toparlar</span>
+            </div>
+            <span class="ozellik-rozet">~15 dk</span>
+          </div>
+          <p class="ozellik-ozet">Analiz ve düzenleme işlerini daha düzenli hale getirir.</p>
+          <ul class="ozellik-liste">
+            <li>Analiz ve düzenleme işlerini sadeleştirir</li>
+            <li>Sayfalar arasında dolaşma ihtiyacını azaltır</li>
+            <li>Rapor akışını daha düzenli hale getirir</li>
+          </ul>
+        </article>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ═══ Anket ═══ -->
+  <section class="anket" id="anket" hidden>
+    <div class="container">
+      <div class="anket-hero">
+        <div class="anket-tanitim">
+          <span class="anket-etiket">Anonim mini anket</span>
+          <h2>İlk izleniminiz ne?</h2>
+          <p class="anket-aciklama">Ahek Plus'ın ilk bakışta size ne hissettirdiğini seçin. Tek soru, kısa cevap, hızlı geri bildirim.</p>
+          <div class="anket-rozetler">
+            <span>1 soru</span>
+            <span>30 saniye</span>
+            <span>Anonim</span>
+          </div>
+          <div class="anket-dipnot">
+            <strong>Neden soruyoruz?</strong>
+            <span>Hangi akışların daha güçlü durduğunu ve hangi alanların yeniden çalışılması gerektiğini daha net görmek için.</span>
+          </div>
+        </div>
+
+        <div class="anket-kart" id="anketKart">
+          <div class="anket-kart-ust">
+            <p class="anket-kucuk-baslik">İlk bakış sorusu</p>
+            <p class="anket-soru"><b>Ahek Plus'ı kullanma niyetiniz nedir?</b></p>
+          </div>
+          <div class="anket-secenekler" id="anketSecenekler">
+            <button class="anket-btn" data-oy="kullanirim">
+              <span class="anket-btn-ikon">💙</span>
+              <span class="anket-btn-metin">
+                <strong>Kullanırım</strong>
+                <small>Tam bana göre görünüyor</small>
+              </span>
+            </button>
+            <button class="anket-btn" data-oy="begendim">
+              <span class="anket-btn-ikon">👍</span>
+              <span class="anket-btn-metin">
+                <strong>Beğendim</strong>
+                <small>İlk izlenimim olumlu</small>
+              </span>
+            </button>
+            <button class="anket-btn" data-oy="denerim">
+              <span class="anket-btn-ikon">🧪</span>
+              <span class="anket-btn-metin">
+                <strong>Denerim</strong>
+                <small>Bir bakıp karar veririm</small>
+              </span>
+            </button>
+            <button class="anket-btn" data-oy="kullanmam">
+              <span class="anket-btn-ikon">🙅</span>
+              <span class="anket-btn-metin">
+                <strong>Kullanmam</strong>
+                <small>Şu an bana uygun görünmüyor</small>
+              </span>
+            </button>
+          </div>
+
+          <div class="anket-sonuc" id="anketSonuc" hidden>
+            <p class="anket-tesekkur">Oyunuz kaydedildi — teşekkürler!</p>
+            <div class="anket-bar" data-oy="kullanirim">
+              <div class="anket-bar-sira">
+                <span>💙 Kullanırım</span>
+                <span class="anket-bar-deger"><b id="sayKullanirim">0</b> · <span id="ytKullanirim">0%</span></span>
+              </div>
+              <div class="anket-bar-ic"><div class="anket-bar-dolgu" id="barKullanirim"></div></div>
+            </div>
+            <div class="anket-bar" data-oy="begendim">
+              <div class="anket-bar-sira">
+                <span>👍 Beğendim</span>
+                <span class="anket-bar-deger"><b id="sayBegendim">0</b> · <span id="ytBegendim">0%</span></span>
+              </div>
+              <div class="anket-bar-ic"><div class="anket-bar-dolgu" id="barBegendim"></div></div>
+            </div>
+            <div class="anket-bar" data-oy="denerim">
+              <div class="anket-bar-sira">
+                <span>🧪 Denerim</span>
+                <span class="anket-bar-deger"><b id="sayDenerim">0</b> · <span id="ytDenerim">0%</span></span>
+              </div>
+              <div class="anket-bar-ic"><div class="anket-bar-dolgu" id="barDenerim"></div></div>
+            </div>
+            <div class="anket-bar" data-oy="kullanmam">
+              <div class="anket-bar-sira">
+                <span>🙅 Kullanmam</span>
+                <span class="anket-bar-deger"><b id="sayKullanmam">0</b> · <span id="ytKullanmam">0%</span></span>
+              </div>
+              <div class="anket-bar-ic"><div class="anket-bar-dolgu" id="barKullanmam"></div></div>
+            </div>
+            <p class="anket-toplam">Toplam oy: <b id="anketToplam">0</b></p>
+            <button class="btn btn-metinsel" id="btnAnketDegistir">Oyumu değiştir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ Footer ═══ -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <div>
+          <div class="logo"><span class="logo-icon">🩺</span><span class="logo-text">Geliştirici <b>Dr.Fatih Şenel</b></span></div>
+        </div>
+        <div class="footer-link-grup">
+          <span class="footer-baslik">Bölümler</span>
+          <a href="#hesapla">HYP Hesapla</a>
+          <a href="#tanitim">Tanıtım</a>
+        </div>
+        <div class="footer-link-grup">
+          <span class="footer-baslik">Bilgi</span>
+          <span>✓ Hasta verisi saklanmaz</span>
+          <span>✓ KVKK uyumlu</span>
+          <span>✓ Resmi 2026 formülü</span>
+        </div>
+      </div>
+      <p class="footer-not footer-aciklama">Aile hekimi ve hemşireler için HYP hesaplama, ASÇ HYP ve HYP katsayı hesabını tek ekranda yapın.</p>
+    </div>
+  </footer>
+
+  <!-- ═══ HYP v2 Profil Modalı ═══ -->
+  <div id="hypV2ProfilModal" class="modal" hidden>
+    <div class="modal-backdrop" data-modal-kapat></div>
+    <div class="modal-icerik modal-profil" role="dialog" aria-modal="true">
+      <button class="modal-kapat" type="button" data-modal-kapat aria-label="Kapat">×</button>
+      <div class="profil-modal-baslik">
+        <span class="profil-modal-ikon">⚙</span>
+        <div>
+          <div class="profil-modal-ana">HYP Kriter Profili</div>
+          <div class="profil-modal-alt">Her kriter için hedef % ve efor belirle</div>
+        </div>
+      </div>
+       <div class="profil-sablon-bar">
+         <span class="profil-sablon-etk">📚</span>
+         <select class="profil-sablon-sec" data-sablon-tablo="hypv2">
+           <option value="">— Şablon seç —</option>
+         </select>
+         <button class="profil-sablon-btn kaydet" data-sablon-aksiyon="kaydet" data-sablon-tablo="hypv2" type="button" title="Mevcut profili yeni şablon olarak kaydet">💾+</button>
+         <button class="profil-sablon-btn sil" data-sablon-aksiyon="sil" data-sablon-tablo="hypv2" type="button" title="Seçili şablonu sil">🗑</button>
+       </div>
+       <p class="profil-sablon-durum" data-sablon-durum="hypv2" aria-live="polite"></p>
+       <p class="profil-modal-aciklama">
+        <b>Efor düzeyleri:</b> Ç.Kolay (0.5×), Kolay (0.75×), Orta (1×), Zor (1.5×), Ç.Zor (2×), Mecbur kalırsa (son çare).
+        <b>Mecbur kalırsa</b> seçince <b>öncelik (1–9)</b> belirle — düşük numara önce devreye girer.
+        <b>Optimize</b> butonu tavanı aşmadan, önce non-Mecbur kriterleri hedefe götürür; yetmezse Mecbur kalırsa'ları öncelik sırasıyla engaje eder.
+      </p>
+      <div class="profil-tablo-sarmal">
+        <table class="profil-tablo" id="hypV2ProfilTablo">
+          <thead>
+            <tr><th>Kriter</th><th title="Bu kriter için hedeflediğiniz başarı yüzdesi (0-95)">Hedef %</th><th title="Efor: Ç.Kolay (×0.5) · Kolay (×0.75) · Orta (×1.0) · Zor (×1.5) · Ç.Zor (×2.0) · Mecbur kalırsa (son çare). Mecbur kalırsa seçilince öncelik (1-9) görünür — düşük numara önce devreye girer.">Efor / Öncelik ⓘ</th></tr>
+          </thead>
+          <tbody id="hypV2ProfilBody"></tbody>
+        </table>
+      </div>
+      <div class="profil-modal-btnler">
+        <button id="hypV2ProfilTemizle" type="button" class="btn btn-ikincil btn-profil-temizle">↺ Temizle</button>
+        <button id="hypV2BanaBirak" type="button" class="btn btn-ikincil" title="Önerilen profili yükle (<2900 nüfus için ideal)">🎯 Bana Bırak</button>
+        <button id="hypV2AIOptimize" type="button" class="btn btn-birincil" data-modal-kapat-sonra="hypV2ProfilModal">✨ Optimize et</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ ASÇ Profil Modalı ═══ -->
+  <div id="ascProfilModal" class="modal" hidden>
+    <div class="modal-backdrop" data-modal-kapat></div>
+    <div class="modal-icerik modal-profil" role="dialog" aria-modal="true">
+      <button class="modal-kapat" type="button" data-modal-kapat aria-label="Kapat">×</button>
+      <div class="profil-modal-baslik">
+        <span class="profil-modal-ikon">⚙</span>
+        <div>
+          <div class="profil-modal-ana">ASÇ Kriter Profili</div>
+          <div class="profil-modal-alt">Her kriter için hedef % ve efor belirle</div>
+        </div>
+      </div>
+       <div class="profil-sablon-bar">
+         <span class="profil-sablon-etk">📚</span>
+         <select class="profil-sablon-sec" data-sablon-tablo="asc">
+           <option value="">— Şablon seç —</option>
+         </select>
+         <button class="profil-sablon-btn kaydet" data-sablon-aksiyon="kaydet" data-sablon-tablo="asc" type="button" title="Mevcut profili yeni şablon olarak kaydet">💾+</button>
+         <button class="profil-sablon-btn sil" data-sablon-aksiyon="sil" data-sablon-tablo="asc" type="button" title="Seçili şablonu sil">🗑</button>
+       </div>
+       <p class="profil-sablon-durum" data-sablon-durum="asc" aria-live="polite"></p>
+       <p class="profil-modal-aciklama">
+        <b>Optimize</b> butonu her iki şartı (katsayı &gt;1 ve hekim HYP × 0.75 eşiği)
+        karşılayacak minimum hedefi bulur.
+        <b>Mecbur kalırsa</b> seçince <b>öncelik (1–9)</b> belirle — eşik non-Mecbur'larla tutmazsa önce düşük numaralılar devreye girer.
+      </p>
+      <div class="profil-tablo-sarmal">
+        <table class="profil-tablo" id="ascProfilTablo">
+          <thead>
+            <tr><th>Kriter</th><th title="Bu kriter için hedeflediğiniz başarı yüzdesi (0-95)">Hedef %</th><th title="Efor: Ç.Kolay (×0.5) · Kolay (×0.75) · Orta (×1.0) · Zor (×1.5) · Ç.Zor (×2.0) · Mecbur kalırsa (son çare). Mecbur kalırsa seçilince öncelik (1-9) görünür — düşük numara önce devreye girer.">Efor / Öncelik ⓘ</th></tr>
+          </thead>
+          <tbody id="ascProfilBody"></tbody>
+        </table>
+      </div>
+      <div class="profil-modal-btnler">
+        <button id="ascProfilTemizle" type="button" class="btn btn-ikincil btn-profil-temizle">↺ Temizle</button>
+        <button id="ascBanaBirak" type="button" class="btn btn-ikincil" title="Önerilen profili yükle">🎯 Bana Bırak</button>
+        <button id="ascAIOptimize" type="button" class="btn btn-birincil" data-modal-kapat-sonra="ascProfilModal">✨ Optimize et</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SortableJS — mobile dokunmatik destekli drag-drop -->
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+  <script src="hesapla.js?v=20260524-cikis-yerel1"></script>
+  <script src="layout.js?v=20260419-tur11"></script>
+  <script src="sablon.js?v=20260429-tur13"></script>
+  <script src="anket.js?v=20260419-tur11"></script>
+  <script src="site.js?v=20260507-fit-hesapla2"></script>
+  <script src="hafiza.js?v=20260524-hesap-izolasyon1"></script>
+  <script src="tur.js?v=20260501-tur14"></script>
+  <script type="module" src="auth.js?v=20260524-senk-status1"></script>
+</body>
+</html>
