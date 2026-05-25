@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ahekplus.com https://www.ahekplus.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://cloudflareinsights.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; navigate-to 'self' https://ahekplus.com https://www.ahekplus.com https://hekimasistani.com https://www.hekimasistani.com https://chat.whatsapp.com; upgrade-insecure-requests">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="domain-redirect.js?v=20260503-domain1"></script>
+  <title>Tahmini HYP — Ahek Plus</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="style.css?v=20260525-header-stable1">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🩺</span>
+      <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">HYP Hesapla</a>
+        <a href="tahmini.html" class="active">Tahmini HYP</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="destek.html">İletişim</a>
+      </nav>
+      <!-- v2: Auth alanı — Giriş/Profil -->
+      <div class="auth-alan">
+        <button id="btnAuthGiris" class="btn-auth-giris" type="button">Giriş Yap</button>
+        <div id="authKullanici" class="auth-kullanici" hidden>
+          <button id="authAvatarBtn" class="auth-avatar-btn" type="button" aria-haspopup="true">
+            <img id="authAvatar" class="auth-avatar" alt="" hidden>
+            <span id="authAvatarInit" class="auth-avatar-init">?</span>
+          </button>
+          <span id="authSenkStatus" class="auth-senk-status">☁ Senkronize</span>
+          <div id="authKullaniciDrop" class="auth-kullanici-drop" hidden>
+            <div class="auth-drop-basini">
+              <div class="auth-drop-isim" id="authIsim">—</div>
+              <div class="auth-drop-mail" id="authMail">—</div>
+            </div>
+            <div class="auth-drop-ayrac"></div>
+            <button id="btnAuthCikis" class="auth-drop-btn" type="button">⏻ Çıkış Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-mobil" id="btnMobilNav" aria-label="Menü" aria-expanded="false">☰</button>
+    </div>
+    <nav class="mobil-panel" id="mobilPanel" hidden>
+      <a href="index.html#hesapla">Hesapla</a>
+      <a href="tahmini.html">Tahmini</a>
+      <a href="index.html#tanitim">Tanıtım</a>
+      <a href="index.html#anket">Anket</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="profil.html#uyelik-bolumu">Profil ve Üyelik</a>
+      <a href="#" data-auth-ac="giris" class="mobil-giris" id="mobilAuthGiris">Giriş / Kayıt</a>
+      <a href="profil.html" class="mobil-giris" id="mobilAuthProfil" hidden>Profil ve Üyelik</a>
+      <a href="#" class="mobil-giris" id="mobilAuthCikis" hidden>⏻ Çıkış Yap</a>
+    </nav>
+  </header>
+
+  <main class="tahmini-sayfa">
+    <section class="tahmini-hero">
+      <h1>Sonraki Ay Tahmini HYP</h1>
+      <p class="tahmini-aciklama">
+        Nüfusunuzdaki kayıtlı hasta sayısı üzerinden önümüzdeki ay performansa eklenebilecek
+        hasta sayılarını hesaplar. Hastalık kriterinin takip döngüsüne göre aylık ortalama katkıyı gösterir.
+      </p>
+      <div class="tahmini-eylem">
+        <button id="btnTahminiHesapla" class="btn-tahmini-hesapla">🧮 Tahmini Verileri Hesapla</button>
+        <span id="tahminiGuncel" class="tahmini-guncel"></span>
+      </div>
+      <div id="tahminiDurum" class="tahmini-durum" hidden></div>
+    </section>
+
+    <div class="tahmini-uyari" role="alert">
+      ⚠️ <b>Bu sayfadaki rakamlar tahminidir</b> — gerçekleşen sayılar izlem/tarama döngüsüne göre değişir.
+      Değerleri kesin hedef olarak kullanmayın, yönlendirme amaçlıdır.
+    </div>
+
+    <section class="tahmini-grid-bolum">
+      <h2 class="tahmini-grid-baslik">Bir sonraki ay tahmini HYP sayıları</h2>
+      <div id="tahminiGrid" class="tahmini-grid">
+        <div class="tahmini-bos">Henüz veri yok — yukarıdaki <b>Tahmini Verileri Hesapla</b> butonuna basın.</div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="site-footer">
+   <p>&copy; 2026 Ahek Plus</p>
+  </footer>
+
+  <script src="site.js" defer></script>
+  <script src="tahmini.js" defer></script>
+  <script type="module" src="auth.js?v=20260525-uyelik-donus1"></script>
+</body>
+</html>

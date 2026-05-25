@@ -1,0 +1,63 @@
+HYP ekran referans degerleri - 2026-05-07
+
+Su Anki Degerler
+
+Genel alan
+
+Hesapla container: max-width: min(99vw, 1720px)
+Container sag/sol padding: 4px
+Iki tablo arasi bosluk: 5px
+Tablo sarmal padding: 4px
+
+Ust kartlar
+
+Kart ic bosluk: padding: 7px 8px 6px
+Kart ic gap: 2px
+Ana kart deger yazisi: 25px
+Nufus input yazisi: 27px
+Nufus input genislik: 100%
+KHT serit yuksekligi: 5px
+KHT serit alt bosluk: 24px
+Hedef tutarsa pill font: 12.5px
+Hedef tutarsa pill padding: 2px 8px
+
+Tablo kolonlari
+
+Kriter kolonu: 20%
+Gereken kolonu: 11%
+Yapilan kolonu: 11%
+Devir kolonu: 11%
+Hedef kolonu: 47%
+
+Kriter satirlari
+
+Satir hucre yuksekligi: 29px
+Hucre font: 12.2px
+Kriter adi min-height: 17px
+Kriter adi padding: 1px 6px 1px 8px
+Kriter adi font: 11.3px
+Sayi input yuksekligi: 27px
+Sayi input max-width: 49px
+Sayi input font: 11.3px
+
+Kriter basliklari
+
+Baslik font: 9.7px
+Baslik ust/alt padding: 1px
+Kriter baslik kapsayici min-height: 25px
+Kriter baslik kucuk yazi: 8.3px
+Tumunu Temizle min-height: 14px
+Tumunu Temizle font: 7px
+
+Hedef bari
+
+Ust bar satiri height: 16px
+Ust bar sag bosluk: 50px
+Bar oluk yuksekligi: 9px
+Alt etiket alani height: 13px
+Alt etiket font: 10px
+"Tavana ulasildi" font: 10.2px
+Hedef input height: 22px
+Hedef input width/max-width: 44px
+Hedef input font: 11.2px
+Hedef hucre input max-width: 49px
