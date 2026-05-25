@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ahekplus.com https://www.ahekplus.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://cloudflareinsights.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; navigate-to 'self' https://ahekplus.com https://www.ahekplus.com https://hekimasistani.com https://www.hekimasistani.com https://chat.whatsapp.com; upgrade-insecure-requests">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="domain-redirect.js?v=20260503-domain1"></script>
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+  <meta http-equiv="Pragma" content="no-cache">
+  <title>Profil ve Üyelik - Ahek Plus</title>
+  <meta name="description" content="Ahek Plus profil ve üyelik sayfası. Giriş durumunuzu, üyelik planınızı, yazıcı kurulumu ve hesap işlemlerini tek ekranda yönetin.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="stylesheet" href="style.css?v=20260524-sifre-goster1">
+</head>
+<body class="profil-sayfasi profil-premium">
+  <header class="site-header profil-topbar">
+    <div class="container header-inner profil-topbar-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">🩺</span>
+      <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="profil.html" class="active">Profil ve Üyelik</a>
+        <a href="destek.html">İletişim</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="profil-shell">
+    <aside class="profil-sidebar" aria-label="Profil menüsü">
+      <div class="profil-sidebar-kisi">
+        <div class="profil-avatar profil-avatar-kucuk" id="profilAvatar">?</div>
+        <div>
+          <strong id="profilIsim">Giriş bekleniyor</strong>
+          <span id="profilMail">Profil bilgileri yüklenmedi</span>
+        </div>
+      </div>
+
+      <nav class="profil-menu">
+        <a href="index.html#hesapla"><span>▦</span> Hesapla</a>
+        <a href="profil.html" class="active"><span>♙</span> Profil Ayarları</a>
+      </nav>
+
+      <div class="profil-sidebar-alt">
+        <a href="uyelik.html" id="btnUyelikYukselt" class="btn btn-birincil" hidden>Üyeliği Yükselt</a>
+        <button id="btnDestekMerkezi" class="btn btn-ikincil" type="button">İletişim</button>
+        <button id="btnCikisYap" class="profil-logout" type="button">Çıkış Yap</button>
+      </div>
+    </aside>
+
+    <section class="profil-main">
+      <div class="profil-main-baslik">
+        <h1>Profil Ayarları</h1>
+        <p>Hesap bilgilerinizi, üyelik durumunuzu ve yazıcı kurulumunu tek ekrandan yönetin.</p>
+      </div>
+
+      <div class="profil-dashboard">
+        <div class="profil-dashboard-sol">
+          <article id="profilOzet" class="profil-status-card profil-kart">
+            <div class="profil-status-icon">✓</div>
+            <div>
+              <h2 id="profilDurumBaslik">Giriş durumu</h2>
+              <p id="profilDurumMetin">Hesabınıza güvenli şekilde bağlısınız.</p>
+            </div>
+          </article>
+
+          <article class="profil-kimlik-card profil-kart">
+            <div class="profil-avatar profil-avatar-buyuk" id="profilAvatarBuyuk">?</div>
+            <div class="profil-kimlik-metin">
+              <h2 id="profilIsimBuyuk">Giriş bekleniyor</h2>
+              <div class="profil-chip-row">
+                <span id="profilTier" class="profil-tier">Ücretsiz</span>
+                <span class="profil-tier profil-tier-nobet">Aktif</span>
+              </div>
+            </div>
+          </article>
+
+          <div class="profil-info-grid">
+            <article class="profil-info-card">
+              <span class="profil-info-icon">✉</span>
+              <div>
+                <span class="profil-bilgi-etiket">E-posta</span>
+                <strong id="profilEmail">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">◇</span>
+              <div>
+                <span class="profil-bilgi-etiket">Paket</span>
+                <strong id="profilPlan">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">◷</span>
+              <div>
+                <span class="profil-bilgi-etiket">Kalan süre</span>
+                <strong id="profilKalanSure">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">□</span>
+              <div>
+                <span class="profil-bilgi-etiket">Hesap oluşturulma</span>
+                <strong id="profilOlusma">—</strong>
+              </div>
+            </article>
+            <article class="profil-info-card">
+              <span class="profil-info-icon">◷</span>
+              <div>
+                <span class="profil-bilgi-etiket">Son giriş</span>
+                <strong id="profilSonGiris">—</strong>
+              </div>
+            </article>
+          </div>
+        </div>
+
+        <aside class="profil-dashboard-sag">
+          <article class="profil-kart profil-side-card" id="yaziciKurulum" hidden>
+            <div class="profil-side-title">
+              <span class="profil-info-icon">▣</span>
+              <h2>Yazıcı Kurulumu</h2>
+            </div>
+            <div class="profil-kurulum-aksiyon profil-kurulum-aksiyon-dikey">
+              <a id="btnYaziciKurulum" class="btn btn-birincil btn-kilitli" href="uyelik.html" aria-disabled="true" tabindex="-1">Premium Gerekli</a>
+              <a id="btnYaziciKaldir" class="btn btn-ikincil" href="../kurulum-dosyalari/HekimPlus_YaziciKaldir.exe" download hidden>Kurulumu Kaldır</a>
+            </div>
+          </article>
+
+          <article class="profil-kart profil-side-card profil-kart-uyari" id="hesapIslemleri" hidden>
+            <div class="profil-kart-baslik">
+              <h2>Hesap işlemleri</h2>
+              <p>Çıkış ve kalıcı silme işlemleri burada görünür.</p>
+            </div>
+            <div class="profil-kurulum-aksiyon">
+              <button id="btnCikisYapSag" class="btn btn-ikincil" type="button">Çıkış Yap</button>
+            </div>
+            <div class="profil-sil-alan">
+              <p class="profil-sil-uyari">
+                Bu işlem geri alınamaz. Devam etmek için kutuya <b>SIL</b> yazın.
+              </p>
+              <input id="silOnay" type="text" placeholder="SIL" autocomplete="off" inputmode="text">
+              <button id="btnSilOnayla" class="btn btn-tehlike" type="button">Hesabı Kalıcı Olarak Sil</button>
+              <div id="profilSilDurum" class="profil-durum" aria-live="polite"></div>
+            </div>
+          </article>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="profil.js?v=20260524-profil8"></script>
+</body>
+</html>
