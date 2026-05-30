@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ahekplus.com https://www.ahekplus.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://us-central1-hekim-asistani.cloudfunctions.net https://cloudflareinsights.com https://challenges.cloudflare.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <script src="domain-redirect.js?v=20260503-domain1"></script>
+  <title>Tıbbi Hesaplamalar - Ahek Plus</title>
+  <meta name="description" content="Ahek Plus tıbbi hesaplamalar: BKİ, BSA, HOMA-IR, eGFR, kreatinin klerensi, düzeltilmiş sodyum, gebelik tarihi, kan gazı ve pediatri hesapları.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="128x128" href="/favicon.png">
+  <link rel="shortcut icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" sizes="128x128" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/site.webmanifest">
+  <link rel="canonical" href="https://ahekplus.com/tibbi-hesaplamalar.html">
+  <link rel="stylesheet" href="style.css?v=20260530-medcalc1">
+</head>
+<body class="medcalc-sayfasi">
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html" class="logo">
+        <span class="logo-icon">A+</span>
+        <span class="logo-text">Ahek <b>Plus</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">HYP Hesapla</a>
+        <a href="tahmini.html">Tahmini HYP</a>
+        <a href="tibbi-hesaplamalar.html" class="active">Tıbbi Hesaplamalar</a>
+        <a href="profil.html">Profil ve Üyelik</a>
+        <a href="duyurular.html">Duyurular</a>
+        <a href="destek.html">İletişim</a>
+      </nav>
+      <div class="auth-alan auth-bekliyor">
+        <a id="btnAuthGiris" class="btn-auth-giris" href="giris.html">Giriş Yap</a>
+        <div id="authKullanici" class="auth-kullanici" hidden>
+          <button id="authAvatarBtn" class="auth-avatar-btn" type="button" aria-haspopup="true">
+            <img id="authAvatar" class="auth-avatar" alt="" hidden>
+            <span id="authAvatarInit" class="auth-avatar-init">?</span>
+          </button>
+          <span id="authSenkStatus" class="auth-senk-status">Senkronize</span>
+          <div id="authKullaniciDrop" class="auth-kullanici-drop" hidden>
+            <div class="auth-drop-basini">
+              <div class="auth-drop-isim" id="authIsim">-</div>
+              <div class="auth-drop-mail" id="authMail">-</div>
+            </div>
+            <div class="auth-drop-ayrac"></div>
+            <button id="btnAuthCikis" class="auth-drop-btn" type="button">Çıkış Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-mobil" id="btnMobilNav" aria-label="Menü" aria-expanded="false">☰</button>
+    </div>
+    <nav class="mobil-panel" id="mobilPanel" hidden>
+      <a href="index.html#hesapla">HYP Hesapla</a>
+      <a href="tahmini.html">Tahmini HYP</a>
+      <a href="tibbi-hesaplamalar.html" class="active">Tıbbi Hesaplamalar</a>
+      <a href="profil.html">Profil ve Üyelik</a>
+      <a href="duyurular.html">Duyurular</a>
+      <a href="destek.html">İletişim</a>
+      <a href="#" data-auth-ac="giris" class="mobil-giris" id="mobilAuthGiris">Giriş / Kayıt</a>
+      <a href="profil.html" class="mobil-giris" id="mobilAuthProfil" hidden>Profil ve Üyelik</a>
+      <a href="#" class="mobil-giris" id="mobilAuthCikis" hidden>Çıkış Yap</a>
+    </nav>
+  </header>
+
+  <main class="medcalc-shell">
+    <section class="medcalc-hero" aria-labelledby="medcalcBaslik">
+      <div class="medcalc-hero-metin">
+        <span class="profil-eyebrow">Ahek Plus hesaplama araçları</span>
+        <h1 id="medcalcBaslik">Tıbbi hesaplamalar</h1>
+        <p>Günlük pratikte sık kullanılan formülleri ve tabloları tek sayfada, sade ve hızlı kullanılacak şekilde hazırladık.</p>
+      </div>
+      <div class="medcalc-uyari" role="note">
+        Sonuçlar klinik kararın yerine geçmez. Hastanın klinik durumu, güncel kılavuzlar ve kurum protokolleriyle birlikte değerlendirilmelidir.
+      </div>
+    </section>
+
+    <section class="medcalc-kontrol" aria-label="Hesaplama arama ve filtre">
+      <label class="medcalc-ara">
+        <span>Hesaplama ara</span>
+        <input id="medcalcAra" type="search" placeholder="BKİ, kreatinin, kan gazı, doğum tarihi..." autocomplete="off">
+      </label>
+      <div id="medcalcKategoriler" class="medcalc-kategoriler" aria-label="Kategori filtreleri"></div>
+    </section>
+
+    <section id="medcalcGrid" class="medcalc-grid" aria-live="polite"></section>
+  </main>
+
+  <footer class="site-footer">
+    <p>&copy; 2026 Ahek Plus</p>
+  </footer>
+
+  <script src="site.js?v=20260528-son-veri1" defer></script>
+  <script src="tibbi-hesaplamalar.js?v=20260530-medcalc1" defer></script>
+  <script type="module" src="auth.js?v=20260530-header-cache1"></script>
+</body>
+</html>
