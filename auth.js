@@ -1,0 +1,1773 @@
+// ═══ Firebase Authentication — Ahek Plus web portalı ═══
+// Email/şifre + Google OAuth + Şifre sıfırlama
+// SDK sürümü Firebase Console tarafından üretilen config ile uyumlu
+
+import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import {
+  getAuth, onAuthStateChanged, signOut,
+  signInWithCustomToken, signInWithEmailAndPassword,
+  sendPasswordResetEmail, sendEmailVerification, updateProfile,
+  GoogleAuthProvider, signInWithPopup, setPersistence, browserLocalPersistence
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-auth.js";
+import {
+  initializeFirestore, getFirestore, persistentLocalCache, persistentMultipleTabManager,
+  doc, setDoc, getDoc, onSnapshot, serverTimestamp, waitForPendingWrites,
+  collection, writeBatch, increment
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+import {
+  getFunctions, httpsCallable
+} from "https://www.gstatic.com/firebasejs/12.12.0/firebase-functions.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA4qoG_wGN4tmXxdBDEP_ZvsjWjAOQ0-5o",
+  authDomain: "hekim-asistani.firebaseapp.com",
+  projectId: "hekim-asistani",
+  storageBucket: "hekim-asistani.firebasestorage.app",
+  messagingSenderId: "660353778151",
+  appId: "1:660353778151:web:8fee3d1eeb4f56df023d42",
+  measurementId: "G-56PPSQLEBW"
+};
+
+// v1.24.2: uyelik.js gibi başka modüller Firebase'i zaten init etmiş olabilir — duplicate önle
+const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+const auth = getAuth(app);
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }),
+  });
+} catch (_) {
+  db = getFirestore(app);
+}
+const functions = getFunctions(app, 'us-central1');
+const kayitOlTurnstileIle = httpsCallable(functions, 'kayitOlTurnstileIle');
+const turnstileDogrulaCallable = httpsCallable(functions, 'turnstileDogrula');
+// Cihazda giriş kalıcı olsun (varsayılan zaten local ama explicit olalım)
+setPersistence(auth, browserLocalPersistence).catch(() => {});
+// Firebase mailleri (şifre sıfırlama, doğrulama) Türkçe olsun
+auth.languageCode = 'tr';
+
+const TURNSTILE_SITE_KEY = '0x4AAAAAADXauKbGgFf9tzCp';
+const TURNSTILE_SCRIPT_SRC = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&hl=tr';
+let _turnstileScriptPromise = null;
+const _turnstileWidgetIds = new Map();
+const TURNSTILE_FORMLAR = {
+  giris: { formId: 'authGirisForm', secici: '[data-turnstile-giris]', action: 'web_giris' },
+  kayit: { formId: 'authKayitForm', secici: '[data-turnstile-kayit]', action: 'web_kayit' },
+};
+
+// Firestore helper'larını module dışındaki script'lere aç (anket.js vb.)
+window._firebase = {
+  db, doc, setDoc, getDoc, onSnapshot, serverTimestamp,
+  collection, writeBatch, increment
+};
+try { window.dispatchEvent(new CustomEvent('firebase-hazir')); } catch (_) {}
+
+// ─────────────────────────────────────────
+// Hata & Durum mesajları
+// ─────────────────────────────────────────
+
+const HATA_ESLEME = {
+  'auth/invalid-email': 'Geçersiz e-posta adresi.',
+  'auth/user-disabled': 'Bu hesap devre dışı bırakılmış.',
+  'auth/user-not-found': 'E-posta veya şifre hatalı.',
+  'auth/wrong-password': 'E-posta veya şifre hatalı.',
+  'auth/invalid-credential': 'E-posta veya şifre hatalı.',
+  'auth/email-already-in-use': 'Bu e-posta adresi zaten kayıtlı.',
+  'auth/weak-password': 'Şifre çok zayıf. En az 6 karakter olmalı.',
+  'auth/popup-closed-by-user': 'Giriş penceresi kapatıldı.',
+  'auth/popup-blocked': 'Tarayıcı giriş penceresini engelledi. Lütfen izin verin.',
+  'auth/cancelled-popup-request': 'Giriş işlemi iptal edildi.',
+  'auth/network-request-failed': 'İnternet bağlantısı yok.',
+  'auth/too-many-requests': 'Çok fazla deneme yapıldı. Birkaç dakika sonra tekrar deneyin.',
+  'auth/unauthorized-domain': 'Bu domain henüz yetkili listede değil.',
+  'auth/missing-email': 'E-posta adresi girilmedi.',
+  'auth/internal-error': 'Giriş tamamlanamadı. Tarayıcı güvenlik kuralı veya giriş ayarı engel olmuş olabilir; lütfen tekrar deneyin.',
+  'functions/already-exists': 'Bu e-posta adresi zaten kayıtlı.',
+  'functions/failed-precondition': 'Bot doğrulaması henüz yapılandırılmamış. Lütfen destek ekibine bildirin.',
+  'functions/invalid-argument': 'Lütfen form alanlarını ve bot doğrulamasını kontrol edin.',
+  'functions/permission-denied': 'Bot doğrulaması başarısız oldu. Lütfen tekrar deneyin.',
+  'functions/unavailable': 'Bot doğrulaması şu an tamamlanamadı. Lütfen tekrar deneyin.',
+  'functions/internal': 'Kayıt tamamlanamadı. Hesap oluştuysa giriş sekmesinden e-posta ve şifrenizle giriş yapabilirsiniz.',
+  'internal': 'Kayıt tamamlanamadı. Hesap oluştuysa giriş sekmesinden e-posta ve şifrenizle giriş yapabilirsiniz.',
+};
+
+function hataMesaji(err, baglam = '') {
+  if (!err) return 'Bir hata oluştu.';
+  if (err.code === 'auth/internal-error' && baglam === 'google') {
+    return 'Google girişi tamamlanamadı. Lütfen tekrar deneyin; devam ederse giriş ayarlarını kontrol etmek gerekir.';
+  }
+  return HATA_ESLEME[err.code] || err.message || 'Bir hata oluştu.';
+}
+
+function durumGoster(mesaj, tip) {
+  const el = document.getElementById('authDurum');
+  if (!el) return;
+  el.textContent = mesaj || '';
+  el.className = 'auth-durum' + (tip ? ' ' + tip : '');
+  clearTimeout(el._t);
+  if (mesaj && tip === 'info') {
+    el._t = setTimeout(() => {
+      el.textContent = '';
+      el.className = 'auth-durum';
+    }, 8000);
+  }
+}
+
+function turnstileYapilandirildiMi() {
+  return !!TURNSTILE_SITE_KEY && !TURNSTILE_SITE_KEY.includes('BEKLIYOR');
+}
+
+function turnstileYukle() {
+  if (!turnstileYapilandirildiMi()) return Promise.reject(new Error('turnstile-not-configured'));
+  if (window.turnstile?.render) return Promise.resolve(window.turnstile);
+  if (_turnstileScriptPromise) return _turnstileScriptPromise;
+  _turnstileScriptPromise = new Promise((resolve, reject) => {
+    const onceki = document.querySelector('script[data-turnstile-script]');
+    if (onceki) {
+      onceki.addEventListener('load', () => resolve(window.turnstile), { once: true });
+      onceki.addEventListener('error', reject, { once: true });
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = TURNSTILE_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.dataset.turnstileScript = '1';
+    script.onload = () => resolve(window.turnstile);
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return _turnstileScriptPromise;
+}
+
+async function turnstileRenderEt(amac = 'kayit') {
+  const ayar = TURNSTILE_FORMLAR[amac] || TURNSTILE_FORMLAR.kayit;
+  const form = document.getElementById(ayar.formId);
+  const alan = form?.querySelector(ayar.secici);
+  if (!form || !alan || _turnstileWidgetIds.has(amac)) return;
+  try {
+    const turnstile = await turnstileYukle();
+    const widgetId = turnstile.render(alan, {
+      sitekey: TURNSTILE_SITE_KEY,
+      theme: 'light',
+      language: 'tr',
+      action: ayar.action,
+    });
+    _turnstileWidgetIds.set(amac, widgetId);
+  } catch (_) {
+    durumGoster('Lutfen bot dogrulamasini tamamlayin.', 'hata');
+  }
+}
+
+function turnstileTokenAl(amac = 'kayit') {
+  if (!turnstileYapilandirildiMi()) return '';
+  const widgetId = _turnstileWidgetIds.get(amac);
+  if (widgetId !== undefined && window.turnstile?.getResponse) {
+    return window.turnstile.getResponse(widgetId) || '';
+  }
+  const ayar = TURNSTILE_FORMLAR[amac] || TURNSTILE_FORMLAR.kayit;
+  return document.querySelector(`#${ayar.formId} [name="cf-turnstile-response"]`)?.value || '';
+}
+
+function turnstileSifirla(amac = '') {
+  if (!window.turnstile?.reset) return;
+  const hedefler = amac ? [amac] : Array.from(_turnstileWidgetIds.keys());
+  hedefler.forEach((anahtar) => {
+    const widgetId = _turnstileWidgetIds.get(anahtar);
+    if (widgetId !== undefined) {
+      try { window.turnstile.reset(widgetId); } catch (_) {}
+    }
+  });
+}
+
+async function turnstileGirisDogrula(amac = 'giris') {
+  await turnstileRenderEt(amac);
+  const turnstileToken = turnstileTokenAl(amac);
+  if (!turnstileToken) {
+    durumGoster('Lutfen bot dogrulamasini tamamlayin.', 'hata');
+    return false;
+  }
+  try {
+    await turnstileDogrulaCallable({ turnstileToken, amac });
+    return true;
+  } catch (err) {
+    durumGoster(hataMesaji(err), 'hata');
+    turnstileSifirla(amac);
+    return false;
+  }
+}
+
+// ─────────────────────────────────────────
+// Modal aç/kapat + sekme geçişi
+// ─────────────────────────────────────────
+
+function modalAc(sekme) {
+  const modal = document.getElementById('authModal');
+  if (!modal) return;
+  modal.hidden = false;
+  document.body.classList.add('modal-acik');
+  sekmeGec(sekme || 'giris');
+  setTimeout(() => {
+    const ilkInp = modal.querySelector('.auth-form.aktif input');
+    if (ilkInp) ilkInp.focus();
+  }, 80);
+}
+
+function modalKapat() {
+  const modal = document.getElementById('authModal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove('modal-acik');
+  durumGoster('');
+}
+
+function _authSayfasiMi() {
+  return document.body.classList.contains('auth-sayfasi') || location.pathname.endsWith('/giris.html');
+}
+
+function _sonraHedefi() {
+  try {
+    const sonra = new URLSearchParams(location.search).get('sonra');
+    if ([
+      'destek.html',
+      'maas-hesaplama.html',
+      'uyelik.html',
+      'index.html#hesapla',
+      'profil.html',
+      'profil.html#premiumDenemeAlani',
+      'profil.html#profilCkysDuzeltme',
+      'profil.html#hesapIslemleri',
+      'profil.html#yazici-kurulumu'
+    ].includes(sonra)) return sonra;
+  } catch (_) {}
+  return '';
+}
+
+function _girisSonrasiYonu() {
+  const sonra = _sonraHedefi();
+  if (sonra) return sonra;
+  return 'index.html#hesapla';
+}
+
+let _sonSenkMetni = '';
+let _sonSenkTip = '';
+
+function _authDurumuYay(user) {
+  try {
+    window.dispatchEvent(new CustomEvent('hekim-auth-durum-degisti', {
+      detail: user ? {
+        user: {
+          uid: user.uid || '',
+          email: user.email || '',
+          displayName: user.displayName || '',
+          emailVerified: user.emailVerified === true,
+        },
+      } : { user: null },
+    }));
+  } catch (_) {}
+}
+
+function _hypBilgiNotuBosalt(el) {
+  while (el.firstChild) el.removeChild(el.firstChild);
+}
+
+function _hypBilgiNotuLinkiOlustur() {
+  const link = document.createElement('a');
+  link.href = 'giris.html';
+  const kalin = document.createElement('b');
+  kalin.textContent = 'Giriş yaparsanız';
+  link.appendChild(kalin);
+  return link;
+}
+
+function _hypBilgiNotuGuncelle(user) {
+  const hypBilgiNotu = document.querySelector('#panel-hypv2 .bilgi-notu');
+  if (!hypBilgiNotu) return;
+
+  _hypBilgiNotuBosalt(hypBilgiNotu);
+  if (user) {
+    const email = user.email || 'e-posta bilgisi yok';
+    const metin = document.createElement('span');
+    metin.textContent = `✅ Giriş yapıldı: ${email}. Değerleriniz bu cihazda korunur; Buluta Kaydet ile yedekleyebilir, Buluttan Çek ile geri alabilirsiniz.`;
+    hypBilgiNotu.appendChild(metin);
+
+    // Senk durum rozeti yalnız gerçek bir işlem (Buluta Kaydet/Çek) sonrası gösterilir.
+    // Kalıcı "yükleniyor"/"Senkronize" placeholder'ı kaldırıldı (manuel senkronda yükleme yok).
+    if (_sonSenkMetni) {
+      const senkRozeti = document.createElement('span');
+      senkRozeti.className = 'auth-senk-status bilgi-notu-senkron' + (_sonSenkTip ? ' ' + _sonSenkTip : '');
+      senkRozeti.textContent = _sonSenkMetni;
+      senkRozeti.title = _sonSenkMetni;
+      hypBilgiNotu.appendChild(senkRozeti);
+    }
+    return;
+  }
+
+  hypBilgiNotu.appendChild(document.createTextNode('ℹ️ Değerler bu cihazda saklanır, sayfayı kapatsanız da kalır. '));
+  hypBilgiNotu.appendChild(_hypBilgiNotuLinkiOlustur());
+  hypBilgiNotu.appendChild(document.createTextNode(' Buluta Kaydet ile yedekleyebilir, Buluttan Çek ile diğer cihazlarınıza alabilirsiniz.'));
+}
+
+function sekmeGec(sekme) {
+  document.querySelectorAll('.auth-sekme-btn').forEach(b => {
+    b.classList.toggle('aktif', b.dataset.authSekme === sekme);
+  });
+  document.querySelectorAll('.auth-form').forEach(f => {
+    f.classList.toggle('aktif', f.dataset.form === sekme);
+  });
+  durumGoster('');
+  const aktifForm = document.querySelector(`.auth-form[data-form="${sekme}"]`);
+  if (aktifForm) {
+    setTimeout(() => {
+      const ilkAlan = aktifForm.querySelector('input, button, select, textarea');
+      if (ilkAlan) ilkAlan.focus();
+    }, 50);
+    if (_authSayfasiMi()) {
+      try { aktifForm.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) {}
+    }
+  }
+  if (sekme === 'giris' || sekme === 'kayit') setTimeout(() => { turnstileRenderEt(sekme); }, 60);
+}
+
+// ─────────────────────────────────────────
+// Kullanıcı menüsü (dropdown)
+// ─────────────────────────────────────────
+
+function kullaniciMenuToggle() {
+  const drop = document.getElementById('authKullaniciDrop');
+  if (drop) drop.hidden = !drop.hidden;
+}
+function kullaniciMenuKapat() {
+  const drop = document.getElementById('authKullaniciDrop');
+  if (drop) drop.hidden = true;
+}
+
+// ─────────────────────────────────────────
+// Firestore — Profil verisi senkronu
+// Yol: /users/{uid}/veriler/hesap
+// Giriş anında çekilir, her input değişiminde otomatik yazılır.
+// ─────────────────────────────────────────
+
+let _aktifUid = null;
+let _snapshotAbort = null;  // onSnapshot unsubscribe
+let _kaydetTimer = null;
+let _uygulamaSirasi = false; // Yüklerken tetiklenen input event'lerini yok say
+let _ilkCloudYuklemeHazir = false;
+let _yerelKayitBekliyor = false;
+let _sonYerelDegisimZamani = 0;
+let _sonCloudHesapVerisi = null;
+let _authIlkDurumGeldi = false;
+let _sonCikisIstegiZamani = 0;
+let _sonGirisIstegiZamani = 0;
+let _bekleyenCloudHesapVerisi = null;
+let _senkBeklemeTimer = null;
+let _bulutVerisiEkranaYazildi = false;
+const _CIKIS_YENILEME_KEY = 'ahek_cikis_yenileme_bekliyor';
+const _AUTH_HEADER_CACHE_KEY = 'ahek_auth_header_cache_v1';
+const _SENKRON_CIHAZ_KEY = 'ahek_senkron_cihaz_id_v1';
+const _HESAP_BULUT_KAYIT_GECIKME_MS = 700;
+
+function _senkronCihazId() {
+  try {
+    let id = localStorage.getItem(_SENKRON_CIHAZ_KEY);
+    if (!id) {
+      id = (crypto?.randomUUID && crypto.randomUUID()) || `cihaz-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      localStorage.setItem(_SENKRON_CIHAZ_KEY, id);
+    }
+    return id;
+  } catch (_) {
+    return 'cihaz-gecici';
+  }
+}
+
+// Kalıcı "senkronlanmamış yerel değişiklik var" bayrağı.
+// Sayfa yenilense bile yaşar; ilk bulut yüklemesinde yerel ileriyse
+// bulutun yereli ezmesini engeller (hızlı yenilemede veri silinmesini önler).
+const _SENK_BEKLIYOR_KEY = 'ahek_hesap_senk_bekliyor_v1';
+function _senkBekliyorIsaretle(uid) {
+  try { localStorage.setItem(_SENK_BEKLIYOR_KEY, uid || _aktifUid || '1'); } catch (_) {}
+}
+function _senkBekliyorTemizle() {
+  try { localStorage.removeItem(_SENK_BEKLIYOR_KEY); } catch (_) {}
+}
+function _senkBekliyorMu(uid) {
+  try { return localStorage.getItem(_SENK_BEKLIYOR_KEY) === (uid || _aktifUid); } catch (_) { return false; }
+}
+
+// Bulut verisinde anlamlı (sıfırdan farklı) içerik var mı?
+function _veriDoluMu(d) {
+  if (!d) return false;
+  if ((Number(d?.hypV2?.nufus) || 0) > 0) return true;
+  if ((Number(d?.asc?.nufus) || 0) > 0) return true;
+  const k = d?.hypV2?.kriterler || {};
+  for (const p in k) { if ((Number(k[p]?.g) || 0) > 0) return true; }
+  const ka = d?.asc?.kriterler || {};
+  for (const p in ka) { if ((Number(ka[p]?.g) || 0) > 0) return true; }
+  const ay = d?.aylik?.kayitlar || {};
+  for (const m in ay) {
+    const r = ay[m];
+    if ((Number(r?.hypV2?.nufus) || 0) > 0 || (Number(r?.asc?.nufus) || 0) > 0) return true;
+    const rk = r?.hypV2?.kriterler || {};
+    for (const p in rk) { if ((Number(rk[p]?.g) || 0) > 0) return true; }
+  }
+  return false;
+}
+
+function _senkStatus(metin, tip) {
+  if (tip === 'info') return;
+  if (tip === 'ok' && /Senkronize/i.test(metin || '')) metin = '☁ Kaydedildi';
+  if (tip === 'hata') {
+    metin = /Senkron/i.test(metin || '') ? '☁ Çevrimdışı' : '☁ Kaydedilemedi';
+  }
+  const el = document.getElementById('authSenkStatus');
+  _sonSenkMetni = metin || '';
+  _sonSenkTip = tip || '';
+  if (el) {
+    el.textContent = _sonSenkMetni;
+    el.title = _sonSenkMetni;
+    el.className = 'auth-senk-status' + (_sonSenkTip ? ' ' + _sonSenkTip : '');
+  }
+  if (_currentUser) _hypBilgiNotuGuncelle(_currentUser);
+}
+
+function _toast(mesaj, tip) {
+  try {
+    if (typeof window.siteToast === 'function') window.siteToast(mesaj, tip);
+  } catch (_) {}
+}
+
+async function _bulutSunucuOnayiBekle() {
+  await waitForPendingWrites(db);
+}
+
+function _girisButonuYerelMod(girisBtn, aktif) {
+  if (!girisBtn) return;
+  girisBtn.textContent = aktif ? 'Yerel Mod · Giriş Yap' : 'Giriş Yap';
+  girisBtn.title = aktif
+    ? 'Çıkış yapıldı. Şu an sadece bu cihaza kayıtlı yerel veriler gösteriliyor.'
+    : 'Giriş Yap';
+}
+
+function _authHeaderKullaniciYansit(kisi = {}) {
+  const girisBtn = document.getElementById('btnAuthGiris');
+  const kullaniciKart = document.getElementById('authKullanici');
+  const avatar = document.getElementById('authAvatar');
+  const avatarInit = document.getElementById('authAvatarInit');
+  const isim = document.getElementById('authIsim');
+  const mail = document.getElementById('authMail');
+  const ad = kisi.displayName || (kisi.email ? kisi.email.split('@')[0] : 'Kullanıcı');
+
+  _girisButonuYerelMod(girisBtn, false);
+  if (girisBtn) girisBtn.hidden = true;
+  if (kullaniciKart) kullaniciKart.hidden = false;
+  if (isim) isim.textContent = ad;
+  if (mail) mail.textContent = kisi.email || '';
+  if (avatar && avatarInit) {
+    if (kisi.photoURL) {
+      avatar.src = kisi.photoURL;
+      avatar.hidden = false;
+      avatarInit.hidden = true;
+    } else {
+      avatar.hidden = true;
+      avatarInit.hidden = false;
+      avatarInit.textContent = (ad[0] || '?').toUpperCase();
+    }
+  }
+  _authHeaderHazirGoster();
+}
+
+function _authHeaderCacheOku() {
+  try {
+    const ham = localStorage.getItem(_AUTH_HEADER_CACHE_KEY);
+    if (!ham) return null;
+    const veri = JSON.parse(ham);
+    const birHafta = 7 * 24 * 60 * 60 * 1000;
+    if (!veri || !veri.uid || !veri.email || !veri.ts || Date.now() - veri.ts > birHafta) return null;
+    return veri;
+  } catch (_) {
+    return null;
+  }
+}
+
+function _authHeaderCacheYaz(user) {
+  if (!user || !user.uid) return;
+  try {
+    localStorage.setItem(_AUTH_HEADER_CACHE_KEY, JSON.stringify({
+      uid: user.uid,
+      email: user.email || '',
+      displayName: user.displayName || '',
+      photoURL: user.photoURL || '',
+      ts: Date.now(),
+    }));
+  } catch (_) {}
+}
+
+function _authHeaderCacheSil() {
+  try { localStorage.removeItem(_AUTH_HEADER_CACHE_KEY); } catch (_) {}
+}
+
+function _authHeaderCacheUygula() {
+  const cache = _authHeaderCacheOku();
+  if (!cache) return false;
+  _authHeaderKullaniciYansit(cache);
+  const senk = document.getElementById('authSenkStatus');
+  if (senk && !_sonSenkMetni) {
+    senk.textContent = '☁ Senkronize';
+    senk.title = 'Oturum doğrulanıyor';
+  }
+  return true;
+}
+
+function _authHeaderHazirGoster() {
+  document.querySelectorAll('.auth-alan.auth-bekliyor').forEach((alan) => {
+    alan.classList.remove('auth-bekliyor');
+  });
+}
+
+function _hesapFormlariHazirMi() {
+  if (!document.getElementById('panel-hypv2') && !document.getElementById('panel-asc')) return true;
+  return !!document.querySelector('input[data-hypv2], input[data-asc]');
+}
+
+function _bulutYuklemeDevamEdiyorMu() {
+  return !!(_aktifUid && !_ilkCloudYuklemeHazir);
+}
+
+window.hesapBulutYuklemeDevamEdiyorMu = _bulutYuklemeDevamEdiyorMu;
+
+function _aktifHesapAlaniYaziliyorMu() {
+  const ae = document.activeElement;
+  return !!(ae && ae.matches && ae.matches('input, select, textarea') &&
+    ae.closest('#panel-hypv2, #panel-asc, .modal'));
+}
+
+function _senkBeklemeToparla(ms = 1400) {
+  clearTimeout(_senkBeklemeTimer);
+  _senkBeklemeTimer = setTimeout(() => {
+    if (!_aktifUid) return;
+    if (_yerelKayitBekliyor) {
+      return;
+    }
+    if (_bekleyenCloudHesapVerisi && !_aktifHesapAlaniYaziliyorMu()) {
+      _bekleyenCloudVerisiniUygula();
+      return;
+    }
+    _senkStatus(_sonCloudHesapVerisi ? '☁ Senkronize' : '☁ Kaydedildi', 'ok');
+  }, ms);
+}
+
+function _cloudVerisiniUygulaVeHazirla(veri) {
+  if (_bulutVerisiEkranaYazildi) {
+    _ilkCloudYuklemeHazir = true;
+    _senkStatus('☁ Kaydedildi', 'ok');
+    return true;
+  }
+  if (!_formaUygula(veri)) {
+    _senkStatus('☁ Hesap formu hazırlanıyor…', 'info');
+    return false;
+  }
+  _ilkCloudYuklemeHazir = true;
+  _bulutVerisiEkranaYazildi = true;
+  _senkStatus('☁ Kaydedildi', 'ok');
+  return true;
+}
+
+function _bekleyenCloudVerisiniUygula() {
+  if (!_bekleyenCloudHesapVerisi || !_hesapFormlariHazirMi()) return;
+  if (_aktifHesapAlaniYaziliyorMu()) {
+    _senkBeklemeToparla();
+    return;
+  }
+  const veri = _bekleyenCloudHesapVerisi;
+  _bekleyenCloudHesapVerisi = null;
+  _cloudVerisiniUygulaVeHazirla(veri);
+}
+
+function _yerelDegisimiBulutaTekrarPlanla() {
+  if (!_aktifUid || !_sonYerelDegisimZamani) return;
+  setTimeout(() => {
+    _profilKaydetDebounced({ detail: { kaynak: 'yerel' } });
+  }, 0);
+}
+
+function _yerelHesapGuncellenmeOku() {
+  try {
+    if (typeof window.hesapYerelGuncellenmeOku === 'function') {
+      return Number(window.hesapYerelGuncellenmeOku()) || 0;
+    }
+  } catch (_) {}
+  return 0;
+}
+
+window.addEventListener('hesap-formlari-hazir', _bekleyenCloudVerisiniUygula);
+window.addEventListener('focusout', () => _senkBeklemeToparla(250), true);
+
+function _alanDegeriYaz(el, deger) {
+  if (!el) return false;
+  // Kullanıcının o an elinde tuttuğu (kirli) alanı buluttan gelen veri ezmez.
+  if (window.hesapAlanKirliMi?.(el)) return false;
+  const yeniDeger = deger ? String(deger) : '';
+  if (el.value === yeniDeger) return false;
+  el.value = yeniDeger;
+  return true;
+}
+
+function _selectDegeriYaz(el, deger, varsayilan) {
+  if (!el) return false;
+  if (window.hesapAlanKirliMi?.(el)) return false;
+  const yeniDeger = String(deger || varsayilan || '');
+  if (!yeniDeger || el.value === yeniDeger) return false;
+  el.value = yeniDeger;
+  return true;
+}
+
+// HYP v2 + ASÇ formlarından verileri topla (kriter + profil)
+function _formdanTopla() {
+  const v2Kriterler = {};
+  const v2Profil = {};
+  if (window.HYP2_KRITERLER) {
+    window.HYP2_KRITERLER.forEach(k => {
+      v2Kriterler[k.prefix] = {
+        g: parseInt(document.querySelector(`input[data-hypv2="${k.prefix}-G"]`)?.value) || 0,
+        y: parseInt(document.querySelector(`input[data-hypv2="${k.prefix}-Y"]`)?.value) || 0,
+        d: parseInt(document.querySelector(`input[data-hypv2="${k.prefix}-D"]`)?.value) || 0,
+        h: parseInt(document.querySelector(`input[data-hypv2="${k.prefix}-H"]`)?.value) || 0,
+      };
+      v2Profil[k.prefix] = {
+        max: parseInt(document.querySelector(`input[data-v2-profil="${k.prefix}-max"]`)?.value) || 0,
+        efor: parseInt(document.querySelector(`select[data-v2-profil="${k.prefix}-efor"]`)?.value) || 3,
+        oncelik: parseInt(document.querySelector(`select[data-v2-profil="${k.prefix}-oncelik"]`)?.value) || 5,
+      };
+    });
+  }
+  const ascKriterler = {};
+  const ascProfil = {};
+  if (window.ASC_KRITERLER) {
+    window.ASC_KRITERLER.forEach(k => {
+      ascKriterler[k.prefix] = {
+        g: parseInt(document.querySelector(`input[data-asc="${k.prefix}-G"]`)?.value) || 0,
+        y: parseInt(document.querySelector(`input[data-asc="${k.prefix}-Y"]`)?.value) || 0,
+        d: parseInt(document.querySelector(`input[data-asc="${k.prefix}-D"]`)?.value) || 0,
+        h: parseInt(document.querySelector(`input[data-asc="${k.prefix}-H"]`)?.value) || 0,
+      };
+      ascProfil[k.prefix] = {
+        max: parseInt(document.querySelector(`input[data-asc-profil="${k.prefix}-max"]`)?.value) || 0,
+        efor: parseInt(document.querySelector(`select[data-asc-profil="${k.prefix}-efor"]`)?.value) || 3,
+        oncelik: parseInt(document.querySelector(`select[data-asc-profil="${k.prefix}-oncelik"]`)?.value) || 5,
+      };
+    });
+  }
+  // Layout (kriter satır + sütun sırası) — layout.js tarafından yönetilir
+  let layout = {};
+  try { if (typeof window.hesapLayoutOku === 'function') layout = window.hesapLayoutOku(); } catch (_) {}
+  // Şablon kütüphanesi — sablon.js tarafından yönetilir
+  let sablonlar = {};
+  try { if (typeof window.hesapSablonOku === 'function') sablonlar = window.hesapSablonOku(); } catch (_) {}
+  let aktifAy = '';
+  let aylikKayitlar = {};
+  try { if (typeof window.hesapAktifAyOku === 'function') aktifAy = window.hesapAktifAyOku(); } catch (_) {}
+  try { if (typeof window.hesapAylikKayitlarOku === 'function') aylikKayitlar = window.hesapAylikKayitlarOku(); } catch (_) {}
+
+  return {
+    aktifAy,
+    hypV2: {
+      nufus: parseInt(document.getElementById('hypV2Nufus')?.value) || 0,
+      nufusTip: document.getElementById('hypV2NufusTip')?.value || '3500',
+      nufusPuani: parseFloat(document.getElementById('hypV2NufusPuani')?.value) || 0,
+      kriterler: v2Kriterler,
+      profil: v2Profil,
+    },
+    asc: {
+      hekimKS: parseFloat(document.getElementById('ascHekimKS')?.value) || 0,
+      nufus: parseInt(document.getElementById('ascNufus')?.value) || 0,
+      nufusTip: document.getElementById('ascNufusTip')?.value || '3500',
+      kriterler: ascKriterler,
+      profil: ascProfil,
+    },
+    layout,
+    sablonlar,
+    aylik: {
+      aktifAy,
+      kayitlar: aylikKayitlar || {},
+    },
+  };
+}
+
+function _ayAnahtariGecerliMi(ayAnahtari) {
+  return /^\d{4}-(0[1-9]|1[0-2])$/.test(String(ayAnahtari || ''));
+}
+
+function _bulutHedefAySec(d, opts = {}) {
+  if (_ayAnahtariGecerliMi(opts.hedefAy)) return opts.hedefAy;
+  try {
+    const yerelAktifAy = typeof window.hesapAktifAyOku === 'function' ? window.hesapAktifAyOku() : '';
+    if (_ayAnahtariGecerliMi(yerelAktifAy)) return yerelAktifAy;
+  } catch (_) {}
+  const cloudAktifAy = d?.aylik?.aktifAy || d?.aktifAy || d?.ayAnahtari || '';
+  return _ayAnahtariGecerliMi(cloudAktifAy) ? cloudAktifAy : '';
+}
+
+function _bulutKriterHaritasiBirlestir(rootHarita, ayHarita) {
+  const sonuc = Object.assign({}, rootHarita || {});
+  Object.entries(ayHarita || {}).forEach(([prefix, kayit]) => {
+    sonuc[prefix] = Object.assign({}, sonuc[prefix] || {}, kayit || {});
+  });
+  return sonuc;
+}
+
+function _bulutHesapBolumuBirlestir(rootBolum, ayBolum) {
+  if (!rootBolum && !ayBolum) return null;
+  return Object.assign({}, rootBolum || {}, ayBolum || {}, {
+    kriterler: _bulutKriterHaritasiBirlestir(rootBolum?.kriterler, ayBolum?.kriterler),
+    profil: _bulutKriterHaritasiBirlestir(rootBolum?.profil, ayBolum?.profil),
+  });
+}
+
+function _bulutKaydiBirlestir(rootKayit, ayKaydi) {
+  if (!rootKayit && !ayKaydi) return null;
+  return Object.assign({}, rootKayit || {}, ayKaydi || {}, {
+    hypV2: _bulutHesapBolumuBirlestir(rootKayit?.hypV2, ayKaydi?.hypV2),
+    asc: _bulutHesapBolumuBirlestir(rootKayit?.asc, ayKaydi?.asc),
+  });
+}
+
+function _bulutKokKayitOlustur(d, ayAnahtari = '') {
+  const rootAy = d?.ayAnahtari || d?.aktifAy || d?.aylik?.aktifAy || ayAnahtari || '';
+  return {
+    ayAnahtari: _ayAnahtariGecerliMi(rootAy) ? rootAy : ayAnahtari,
+    hypV2: d?.hypV2 || null,
+    asc: d?.asc || null,
+    guncellenme: d?.istemciGuncellenme || d?.senkron?.istemciGuncellenme || d?.guncellenme || Date.now(),
+  };
+}
+
+function _bulutAyKaydiSec(d, hedefAy, cloudKayitlar) {
+  if (!_ayAnahtariGecerliMi(hedefAy)) return null;
+  const ayKaydi = cloudKayitlar?.[hedefAy] || null;
+  const rootAy = d?.ayAnahtari || d?.aktifAy || d?.aylik?.aktifAy || '';
+  const rootKayit = rootAy === hedefAy ? _bulutKokKayitOlustur(d, hedefAy) : null;
+  if (ayKaydi && _veriDoluMu(ayKaydi)) return _bulutKaydiBirlestir(rootKayit, ayKaydi);
+  if (_veriDoluMu(rootKayit) && rootKayit.ayAnahtari === hedefAy) return rootKayit;
+  return ayKaydi ? _bulutKaydiBirlestir(rootKayit, ayKaydi) : null;
+}
+
+function _aktifAyKaydiniBulutaAyna(veri) {
+  const aktifAy = _ayAnahtariGecerliMi(veri?.aktifAy) ? veri.aktifAy : _bulutHedefAySec(veri);
+  if (!_ayAnahtariGecerliMi(aktifAy)) return;
+  const kayitlar = Object.assign({}, veri?.aylik?.kayitlar || {});
+  const kokKayit = _bulutKokKayitOlustur(veri, aktifAy);
+  kayitlar[aktifAy] = _bulutKaydiBirlestir(kayitlar[aktifAy], kokKayit);
+  veri.aylik = Object.assign({}, veri.aylik || {}, {
+    aktifAy,
+    kayitlar,
+  });
+}
+
+// Firestore verisini formlara uygula + localStorage'a da mirror et
+function _formaUygula(d, opts = {}) {
+  if (!_hesapFormlariHazirMi()) {
+    _bekleyenCloudHesapVerisi = d;
+    return false;
+  }
+  try {
+    const cloudKayitlar = d?.aylik?.kayitlar || d?.aylikKayitlar;
+    if (cloudKayitlar && typeof window.hesapAylikKayitlarYaz === 'function') {
+      const hedefAy = _bulutHedefAySec(d, opts);
+      const hedefKayit = _bulutAyKaydiSec(d, hedefAy, cloudKayitlar);
+      if (opts.tekAy && hedefAy && typeof window.hesapTekAyKaydiYaz === 'function') {
+        // Manuel Buluttan Çek: yalnız aktif ayı güncelle, diğer yerel aylara dokunma.
+        window.hesapTekAyKaydiYaz(hedefKayit, hedefAy);
+      } else {
+        // İlk yükleme / otomatik snapshot: tüm bulut aylarını yerele aynala.
+        window.hesapAylikKayitlarYaz(cloudKayitlar, hedefAy);
+      }
+      if (hedefAy && hedefKayit) {
+        d = Object.assign({}, d, hedefKayit, {
+          layout: d.layout,
+          sablonlar: d.sablonlar,
+          aylik: d.aylik,
+        });
+      } else if (hedefAy) {
+        d = Object.assign({}, d, {
+          hypV2: null,
+          asc: null,
+          aylik: d.aylik,
+        });
+      }
+    }
+  } catch (_) {}
+  let degisti = false;
+  _uygulamaSirasi = true;
+  try {
+    if (d.hypV2) {
+      const hypDegistiOnce = degisti;
+      const nufusEl = document.getElementById('hypV2Nufus');
+      if (Object.prototype.hasOwnProperty.call(d.hypV2, 'nufus')) {
+        degisti = _alanDegeriYaz(nufusEl, d.hypV2.nufus) || degisti;
+      }
+      const nufusTipEl = document.getElementById('hypV2NufusTip');
+      if (d.hypV2.nufusTip) degisti = _selectDegeriYaz(nufusTipEl, d.hypV2.nufusTip, '3500') || degisti;
+      const nufusPuaniEl = document.getElementById('hypV2NufusPuani');
+      if (Object.prototype.hasOwnProperty.call(d.hypV2, 'nufusPuani')) {
+        degisti = _alanDegeriYaz(nufusPuaniEl, d.hypV2.nufusPuani) || degisti;
+      }
+      Object.entries(d.hypV2.kriterler || {}).forEach(([prefix, kay]) => {
+        ['g','y','d','h'].forEach(suf => {
+          const el = document.querySelector(`input[data-hypv2="${prefix}-${suf.toUpperCase()}"]`);
+          if (Object.prototype.hasOwnProperty.call(kay, suf)) {
+            degisti = _alanDegeriYaz(el, kay[suf]) || degisti;
+          }
+        });
+      });
+      Object.entries(d.hypV2.profil || {}).forEach(([prefix, p]) => {
+        const maxEl = document.querySelector(`input[data-v2-profil="${prefix}-max"]`);
+        const eforEl = document.querySelector(`select[data-v2-profil="${prefix}-efor"]`);
+        const oncelikEl = document.querySelector(`select[data-v2-profil="${prefix}-oncelik"]`);
+        if (Object.prototype.hasOwnProperty.call(p, 'max')) degisti = _alanDegeriYaz(maxEl, p.max) || degisti;
+        if (p.efor) degisti = _selectDegeriYaz(eforEl, p.efor, 3) || degisti;
+        if (p.oncelik) degisti = _selectDegeriYaz(oncelikEl, p.oncelik, 5) || degisti;
+        if (oncelikEl) {
+          const gizliOlmali = parseInt(eforEl?.value) !== 6;
+          if (oncelikEl.hidden !== gizliOlmali) {
+            oncelikEl.hidden = gizliOlmali;
+            degisti = true;
+          }
+        }
+      });
+      if (degisti !== hypDegistiOnce && typeof window.hypV2Hesapla === 'function') window.hypV2Hesapla();
+    }
+    if (d.asc) {
+      const ascDegistiOnce = degisti;
+      const ksEl = document.getElementById('ascHekimKS');
+      if (Object.prototype.hasOwnProperty.call(d.asc, 'hekimKS')) {
+        degisti = _alanDegeriYaz(ksEl, d.asc.hekimKS) || degisti;
+      }
+      const ascNufusEl = document.getElementById('ascNufus');
+      if (Object.prototype.hasOwnProperty.call(d.asc, 'nufus')) {
+        degisti = _alanDegeriYaz(ascNufusEl, d.asc.nufus) || degisti;
+      }
+      const ascNufusTipEl = document.getElementById('ascNufusTip');
+      if (d.asc.nufusTip) degisti = _selectDegeriYaz(ascNufusTipEl, d.asc.nufusTip, '3500') || degisti;
+      Object.entries(d.asc.kriterler || {}).forEach(([prefix, kay]) => {
+        ['g','y','d','h'].forEach(suf => {
+          const el = document.querySelector(`input[data-asc="${prefix}-${suf.toUpperCase()}"]`);
+          if (Object.prototype.hasOwnProperty.call(kay, suf)) {
+            degisti = _alanDegeriYaz(el, kay[suf]) || degisti;
+          }
+        });
+      });
+      Object.entries(d.asc.profil || {}).forEach(([prefix, p]) => {
+        const maxEl = document.querySelector(`input[data-asc-profil="${prefix}-max"]`);
+        const eforEl = document.querySelector(`select[data-asc-profil="${prefix}-efor"]`);
+        const oncelikEl = document.querySelector(`select[data-asc-profil="${prefix}-oncelik"]`);
+        if (Object.prototype.hasOwnProperty.call(p, 'max')) degisti = _alanDegeriYaz(maxEl, p.max) || degisti;
+        if (p.efor) degisti = _selectDegeriYaz(eforEl, p.efor, 3) || degisti;
+        if (p.oncelik) degisti = _selectDegeriYaz(oncelikEl, p.oncelik, 5) || degisti;
+        if (oncelikEl) {
+          const gizliOlmali = parseInt(eforEl?.value) !== 6;
+          if (oncelikEl.hidden !== gizliOlmali) {
+            oncelikEl.hidden = gizliOlmali;
+            degisti = true;
+          }
+        }
+      });
+      if (degisti !== ascDegistiOnce && typeof window.ascHesapla === 'function') window.ascHesapla();
+    }
+    // Layout uygula (kriter satır + sütun sırası)
+    if (d.layout && typeof window.hesapLayoutYaz === 'function') {
+      window.hesapLayoutYaz(d.layout);
+      degisti = true;
+    }
+    // Şablon kütüphanesini uygula (dropdown da güncellenir)
+    if (d.sablonlar && typeof window.hesapSablonYaz === 'function') {
+      window.hesapSablonYaz(d.sablonlar);
+      degisti = true;
+    }
+    // Cloud'dan geleni cihaz cache'ine de yaz — logout sonrası local'de kalsın
+    if (degisti && typeof window.hesapLocalKaydet === 'function') window.hesapLocalKaydet();
+    if (degisti) {
+      try {
+        window.dispatchEvent(new CustomEvent('hesap-verisi-degisti', { detail: { kaynak: 'cloud' } }));
+      } catch (_) {}
+    }
+    return true;
+  } finally {
+    setTimeout(() => { _uygulamaSirasi = false; }, 50);
+  }
+}
+
+// Realtime dinle (başka cihazdan değişiklik gelirse otomatik yansır)
+async function _profilYukle(uid) {
+  try {
+    const ref = doc(db, 'users', uid, 'veriler', 'hesap');
+    if (_snapshotAbort) { _snapshotAbort(); _snapshotAbort = null; }
+    _snapshotAbort = onSnapshot(ref, { includeMetadataChanges: true }, (snap) => {
+      if (!snap.exists()) {
+        if (uid !== _aktifUid) return;
+        if (snap.metadata?.fromCache) {
+          _senkStatus('☁ Yerel cache', 'info');
+          return;
+        }
+        const yerelRev = Math.max(_sonYerelDegisimZamani || 0, _yerelHesapGuncellenmeOku());
+        _ilkCloudYuklemeHazir = true;
+        _bulutVerisiEkranaYazildi = true;
+        _sonCloudHesapVerisi = null;
+        _senkStatus('☁ Hesap verisi yok', 'info');
+        if (yerelRev) {
+          _sonYerelDegisimZamani = Math.max(_sonYerelDegisimZamani || 0, yerelRev);
+          _yerelDegisimiBulutaTekrarPlanla();
+        }
+        try {
+          window.dispatchEvent(new CustomEvent('hesap-eklenti-veri-geldi', {
+            detail: { hesapVerisiYok: true, kaynak: 'cloud' },
+          }));
+        } catch (_) {}
+        return;
+      }
+      if (uid !== _aktifUid) return; // Başka kullanıcıya geçildiyse yok say
+      // Kendi yazdığımız (henüz server'a doğrulanmamış) değişiklikleri yok say
+      // — aksi halde kullanıcı yazarken alanlar clobber olur.
+      if (snap.metadata && snap.metadata.hasPendingWrites) return;
+      const veri = snap.data();
+      _sonCloudHesapVerisi = veri;
+      if (snap.metadata?.fromCache) {
+        _senkStatus('☁ Yerel cache', 'info');
+      }
+      // ── İlk yükleme koruması (hızlı yenilemede veri silinmesini önler) ──
+      // İki durumda yereli koru, bulutu forma BASMA (aksi halde yereli sileriz):
+      //  (a) Yerelde gönderilmemiş değişiklik var (kalıcı bayrak) → son düzenleme
+      //      sayfa kapanmadan buluta ulaşmamış olabilir; bulut geride.
+      //  (b) Bulut boş/sıfır ama yerelde veri var → bozulmuş/eski bulut.
+      // Her iki durumda da yereli kaynak kabul edip buluta gönderiyoruz.
+      if (!_ilkCloudYuklemeHazir) {
+        const yerelDolu = (typeof window.hesapFormDoluMu === 'function') && window.hesapFormDoluMu();
+        const bulutBos = !_veriDoluMu(veri);
+        // Yalnızca yerel form doluyken koru; yerel boşsa buluta güven (uygula).
+        if (yerelDolu && (_senkBekliyorMu(uid) || bulutBos)) {
+          _ilkCloudYuklemeHazir = true;
+          _bulutVerisiEkranaYazildi = true;
+          _sonYerelDegisimZamani = Date.now();
+          _senkStatus('☁ Yerel değişiklikler gönderiliyor…', 'info');
+          _yerelDegisimiBulutaTekrarPlanla();
+          return;
+        }
+      }
+      // Kullanıcı aktif olarak bir hesap girdisi üzerindeyse senkron ertelenir.
+      if (_aktifHesapAlaniYaziliyorMu()) {
+        _bekleyenCloudHesapVerisi = veri;
+        _senkStatus(_sonCloudHesapVerisi ? '☁ Senkronize' : '☁ Kaydedildi', 'ok');
+        _senkBeklemeToparla();
+        return;
+      }
+      // Eklenti verisi koruma penceresi — SINA/HYP'den yeni çekilen veri en tazedir.
+      // Bu pencerede gelen bulut snapshot'ı ESKİ olabilir; onu STASH'LEYİP sonradan
+      // uygularsak çekilen veriyi siler (kullanıcının gördüğü "tekrar verisi" bug'ı).
+      // Bu yüzden stale snapshot'ı ne uygula ne stash'le — yereli olduğu gibi koru.
+      // Çekilen alanlar ayrıca kirli işaretli; kaydımız buluta gidip onaylanınca
+      // sonraki snapshot zaten güncel veriyi taşır.
+      if (window._eklentiVerisiZamani && Date.now() - window._eklentiVerisiZamani < 10000) {
+        _senkStatus('☁ Eklenti verisi korunuyor…', 'info');
+        return;
+      }
+      // Temizleme penceresi — kullanıcı az önce "Temizle" dediyse stale bulut geri doldurmasın.
+      const uzakRev = Number(veri?.istemciGuncellenme) || 0;
+      if (window._hesapTemizlemeZamani && Date.now() - window._hesapTemizlemeZamani < 10000 &&
+          (!uzakRev || uzakRev < window._hesapTemizlemeZamani)) {
+        _senkStatus('☁ Temizleme korunuyor…', 'info');
+        _senkBeklemeToparla(10000);
+        return;
+      }
+      const yerelRev = Math.max(_sonYerelDegisimZamani || 0, _yerelHesapGuncellenmeOku());
+      if (yerelRev && (!uzakRev || uzakRev < yerelRev)) {
+        _sonYerelDegisimZamani = Math.max(_sonYerelDegisimZamani || 0, yerelRev);
+        _senkStatus('Yerel kayit korunuyor...', 'info');
+        _yerelDegisimiBulutaTekrarPlanla();
+        return;
+      }
+      _cloudVerisiniUygulaVeHazirla(veri);
+    }, (err) => {
+      console.warn('Firestore dinleme hatası:', err);
+      if (err.code === 'permission-denied') {
+        _senkStatus('☁ Kurallar ayarlanmamış', 'hata');
+      } else {
+        _senkStatus('☁ Senkron hatası', 'hata');
+      }
+    });
+  } catch (err) {
+    console.warn('Profil yükleme hatası:', err);
+  }
+}
+
+// Debounced yazım — her değişimde 600ms bekle, toplu yaz
+function _profilKaydetDebounced(e) {
+  if (!_aktifUid) return;
+  if (_uygulamaSirasi) return;       // Yükleme esnasında yazma
+  if (e?.detail?.kaynak === 'cloud') return;
+  if (e?.detail?.kaynak === 'yerel-acilis') return;
+  if (!_ilkCloudYuklemeHazir) {
+    _senkStatus('☁ Hesap verisi yükleniyor', 'info');
+    _sonYerelDegisimZamani = Date.now();
+    return;
+  }
+  if (typeof window.hesapYerelYuklemeAktifMi === 'function' && window.hesapYerelYuklemeAktifMi()) return;
+  if (e?.detail?.islem === 'temizle') {
+    window._hesapTemizlemeZamani = Number(e.detail.temizlemeZamani) || Date.now();
+  }
+  _yerelKayitBekliyor = true;
+  _sonYerelDegisimZamani = Date.now();
+  _senkBekliyorIsaretle(_aktifUid); // yenileme olsa da "yerel ileride" bilinsin
+  _senkStatus('☁ Kaydediliyor…', 'kaydediliyor'); // görünür geri bildirim (info gizleniyor)
+  clearTimeout(_kaydetTimer);
+  _kaydetTimer = setTimeout(_bulutaYaz, _HESAP_BULUT_KAYIT_GECIKME_MS);
+}
+
+// Bekleyen değişikliği buluta yazar. Hem debounce zamanlayıcısı hem de
+// sayfa gizlenince/kapanınca çağrılan anında-flush bunu kullanır.
+// setDoc, mutasyonu Firestore'un kalıcı cache'ine (IndexedDB) hemen alır;
+// ağ tamamlanmasa bile yenileme sonrası senkron olur → hızlı yenilemede kayıp olmaz.
+async function _bulutaYaz() {
+  if (!_aktifUid) return;
+  clearTimeout(_kaydetTimer);
+  _kaydetTimer = null;
+  // Güvenlik: boş formu, bulutta veri varken YAZMA — erken/kazara tetiklenen bir
+  // yazımın bulut verisini sıfırlamasını (ve diğer cihazları silmesini) önler.
+  // Açık "Temizle" akışı (_hesapTemizlemeZamani) hariç tutulur.
+  const temizlemeAktif = window._hesapTemizlemeZamani &&
+    (Date.now() - window._hesapTemizlemeZamani < 10000);
+  const formDolu = (typeof window.hesapFormDoluMu === 'function') ? window.hesapFormDoluMu() : true;
+  if (!formDolu && !temizlemeAktif && _veriDoluMu(_sonCloudHesapVerisi)) {
+    _yerelKayitBekliyor = false;
+    _senkStatus('☁ Kaydedildi', 'ok'); // bulut verisi korunuyor; spinner takılı kalmasın
+    return;
+  }
+  // Bu yazımda sunucuya gönderilen kirli alanları değerleriyle yakala.
+  // Sunucu onayından sonra (değer hâlâ aynıysa) kirli işaretlerini kaldırırız;
+  // bekleme sırasında yeniden düzenlenen alanlar kirli kalır, korunur.
+  const yazilanKirli = (window.hesapKirliAnahtarlar?.() || []).map((k) => ({
+    k, v: (document.querySelector(k) || {}).value,
+  }));
+  try {
+    const ref = doc(db, 'users', _aktifUid, 'veriler', 'hesap');
+    const veri = _formdanTopla();
+    if (_sonCloudHesapVerisi?.birim) veri.birim = _sonCloudHesapVerisi.birim;
+    veri.istemciGuncellenme = _sonYerelDegisimZamani || Date.now();
+    veri.senkron = Object.assign({}, _sonCloudHesapVerisi?.senkron || {}, {
+      sonYazanCihaz: _senkronCihazId(),
+      sonKaynak: 'web',
+      istemciGuncellenme: veri.istemciGuncellenme,
+    });
+    veri.guncellenme = serverTimestamp();
+    const yazim = setDoc(ref, veri, { merge: true });
+    _yerelKayitBekliyor = false; // mutasyon kalıcı cache'e alındı
+    await yazim;                 // sunucu onayı
+    _senkBekliyorTemizle();      // yerel artık buluta ulaştı
+    // Sunucuya ulaşan alanların kirli işaretini kaldır (değeri değişmediyse).
+    yazilanKirli.forEach(({ k, v }) => {
+      if ((document.querySelector(k) || {}).value === v) window.hesapKirliAlanTemizle?.(k);
+    });
+    _senkStatus('☁ Kaydedildi', 'ok');
+    _senkBeklemeToparla(1800);
+  } catch (err) {
+    _yerelKayitBekliyor = false;
+    console.warn('Kaydetme hatası:', err);
+    if (err.code === 'permission-denied') {
+      _senkStatus('☁ Kurallar ayarlanmamış', 'hata');
+    } else {
+      _senkStatus('☁ Kaydedilemedi', 'hata');
+    }
+  }
+}
+
+// Sayfa gizlenince/kapanınca bekleyen yazımı debounce'u beklemeden hemen gönder.
+function _profilHemenKaydet() {
+  if (!_aktifUid) return;
+  if (!_yerelKayitBekliyor && !_kaydetTimer) return; // bekleyen değişiklik yok
+  _bulutaYaz();
+}
+// Manuel senkron: otomatik bulut yazma/flush listener'ları kaldırıldı (Buluta Kaydet butonu kullanılır).
+
+// ── Manuel bulut senkronu (Buluta Kaydet / Buluttan Çek butonları) ──
+// Self-contained: karmaşık otomatik-senkron guard durumuna bağlı değil.
+const _BULUT_CEK_BEKLEME_MS = 60000;
+let _manuelBulutKaydetPromise = null;
+let _sonManuelBulutKayitOnayZamani = 0;
+function _bulutCekBeklemeKalanMs() {
+  if (!_sonManuelBulutKayitOnayZamani) return 0;
+  return Math.max(0, _BULUT_CEK_BEKLEME_MS - (Date.now() - _sonManuelBulutKayitOnayZamani));
+}
+window.hesapBulut = {
+  async kaydet() {
+    if (!_aktifUid) return { ok: false, sebep: 'giris-yok' };
+    if (_manuelBulutKaydetPromise) return _manuelBulutKaydetPromise;
+    const kaydetPromise = (async () => {
+    try {
+      const ref = doc(db, 'users', _aktifUid, 'veriler', 'hesap');
+      try { window.hesapLocalKaydet?.(); } catch (_) {}
+      const veri = _formdanTopla();
+      _aktifAyKaydiniBulutaAyna(veri);
+      if (_sonCloudHesapVerisi?.birim) veri.birim = _sonCloudHesapVerisi.birim;
+      veri.istemciGuncellenme = Date.now();
+      veri.senkron = {
+        sonYazanCihaz: _senkronCihazId(),
+        sonKaynak: 'web-manuel',
+        istemciGuncellenme: veri.istemciGuncellenme,
+      };
+      veri.guncellenme = serverTimestamp();
+      _senkStatus('☁ Buluta gönderiliyor…', 'kaydediliyor');
+      await setDoc(ref, veri, { merge: true });
+      await _bulutSunucuOnayiBekle();
+      _sonCloudHesapVerisi = veri;
+      _sonManuelBulutKayitOnayZamani = Date.now();
+      _senkStatus('☁ Buluta kaydedildi', 'ok');
+      return { ok: true, zaman: veri.istemciGuncellenme };
+    } catch (err) {
+      console.warn('Buluta kaydetme hatası:', err?.message || 'hata');
+      _senkStatus('☁ Buluta gönderilemedi', 'hata');
+      return { ok: false, sebep: err?.code === 'permission-denied' ? 'kurallar' : 'hata' };
+    }
+    })();
+    _manuelBulutKaydetPromise = kaydetPromise;
+    try {
+      return await kaydetPromise;
+    } finally {
+      if (_manuelBulutKaydetPromise === kaydetPromise) _manuelBulutKaydetPromise = null;
+    }
+  },
+  async cek(hedefAy) {
+    if (!_aktifUid) return { ok: false, sebep: 'giris-yok' };
+    if (_manuelBulutKaydetPromise) return { ok: false, sebep: 'kayit-suruyor' };
+    const kalanMs = _bulutCekBeklemeKalanMs();
+    if (kalanMs > 0) return { ok: false, sebep: 'bekleme', kalanMs };
+    try {
+      const ref = doc(db, 'users', _aktifUid, 'veriler', 'hesap');
+      const snap = await getDoc(ref);
+      if (!snap.exists()) return { ok: false, sebep: 'kayit-yok' };
+      const veri = snap.data();
+      _sonCloudHesapVerisi = veri;
+      // Manuel çekişte koruma bayrağını atla — bulut kazanır.
+      _bulutVerisiEkranaYazildi = false;
+      // Kullanıcı "Buluttan Çek"i onayladı (bulut kazansın): elle düzenlenmiş
+      // (kirli) alanları da ez. Aksi halde _alanDegeriYaz kirli alanları atlar,
+      // form/arşiv eski değerde kalır (kanıt: htTarama-G manuel düzenleme + cek no-op).
+      try { window.hesapKirliAlanTemizle?.(); } catch (_) {}
+      // tekAy: manuel çekiş yalnız aktif aya işlem yapar, diğer aylara dokunmaz.
+      if (!_formaUygula(veri, { hedefAy, tekAy: true })) return { ok: false, sebep: 'form-hazir-degil' };
+      // Çekme tamamlandı: ilk yükleme hazır say + rozeti "yükleniyor"da bırakma.
+      _ilkCloudYuklemeHazir = true;
+      _bulutVerisiEkranaYazildi = true;
+      _senkStatus('☁ Senkronize', 'ok');
+      return { ok: true, zaman: veri?.istemciGuncellenme || veri?.senkron?.istemciGuncellenme || null };
+    } catch (err) {
+      console.warn('Buluttan çekme hatası:', err?.message || 'hata');
+      return { ok: false, sebep: err?.code === 'permission-denied' ? 'kurallar' : 'hata' };
+    }
+  },
+};
+
+// ─────────────────────────────────────────
+// Auth state değişimi → header UI güncellemesi + veri senkronu
+// ─────────────────────────────────────────
+
+// Eklenti "Siteden Giriş" akışı için currentUser referansı + token erişimi
+let _currentUser = null;
+window.hesapAuthTokenleriAl = async () => {
+  if (!_currentUser) return null;
+  try {
+    const idToken = await _currentUser.getIdToken();
+    return {
+      idToken,
+      refreshToken: _currentUser.refreshToken || '',
+      uid: _currentUser.uid,
+      email: _currentUser.email || '',
+      displayName: _currentUser.displayName || '',
+      emailVerified: _currentUser.emailVerified === true,
+    };
+  } catch (_) { return null; }
+};
+
+// İzole dünya köprüsü — content script (site_content.js) sayfa JS global'ine
+// erişemez. window.postMessage (structured clone) ile güvenilir ikili yönlü iletişim.
+window.addEventListener('message', async (e) => {
+  if (e.source !== window) return;
+  if (e.origin !== location.origin) return;
+  if (!e.data || e.data.type !== 'hekim-asistan-token-iste') return;
+  const tokens = await window.hesapAuthTokenleriAl();
+  window.postMessage({ type: 'hekim-asistan-token-hazir', tokens: tokens || null }, location.origin);
+});
+
+// v1.22.1 (site): Firestore /users/{uid} dokümanını senkronize tut
+// Site'de giriş yapan/kaydolan her kullanıcı için parent doc oluşur → admin listeleyebilir,
+// tier değişimi vs. yönetebilir. Mevcut tier alanına dokunmayız (merge:true).
+async function _suresiBitmisSiteUyeliginiNormallestir(ref, snap) {
+  const mevcut = snap?.data?.() || {};
+  const tier = String(mevcut.tier || 'free').toLowerCase();
+  const tierUntil = mevcut.tierUntil?.toDate ? mevcut.tierUntil.toDate() : (mevcut.tierUntil ? new Date(mevcut.tierUntil) : null);
+  if (tier === 'free' || !tierUntil || Number.isNaN(tierUntil.getTime()) || tierUntil.getTime() > Date.now()) return;
+  const kaynak = String(mevcut.uyelikKaynak || '').toLowerCase();
+  await setDoc(ref, {
+    tier: 'free',
+    rawTier: 'free',
+    tierUntil: null,
+    oncekiTier: tier,
+    oncekiTierUntil: mevcut.tierUntil || null,
+    uyelikKaynak: kaynak === 'premium_deneme' ? 'premium_deneme_bitti' : 'sure_bitti',
+    uyelikGuncellenme: serverTimestamp(),
+  }, { merge: true });
+}
+
+async function _ensureUserDoc(user) {
+  if (!user || !user.uid) return;
+  try {
+    const ref = doc(db, 'users', user.uid);
+    const snap = await getDoc(ref);
+    const data = {
+      email: user.email || '',
+      displayName: user.displayName || '',
+      lastLoginAt: serverTimestamp(),
+    };
+    if (!snap.exists()) {
+      data.tier = 'free';
+      data.tierUntil = null;
+      data.createdAt = serverTimestamp();
+    } else {
+      await _suresiBitmisSiteUyeliginiNormallestir(ref, snap);
+      const mevcut = snap.data() || {};
+      if (!Object.prototype.hasOwnProperty.call(mevcut, 'tier')) data.tier = 'free';
+      if (!Object.prototype.hasOwnProperty.call(mevcut, 'tierUntil')) data.tierUntil = null;
+    }
+    await setDoc(ref, data, { merge: true });
+  } catch (e) {
+    console.warn('[auth] /users doküman senkronu hatası:', e);
+  }
+}
+
+let _webAdminYuzeyUnsub = null;
+
+function _webAdminYuzeyleriAyarla(admin, durum = 'hazir', maasYetkili = true) {
+  window.__AHEK_WEB_ADMIN_MI = admin === true;
+  window.__AHEK_MAAS_MODULU_ACIK = true;
+  document.documentElement.classList.toggle('ahek-web-admin', admin === true);
+  document.querySelectorAll('[data-web-admin-only="1"]').forEach((node) => {
+    node.hidden = admin !== true;
+  });
+  document.querySelectorAll('[data-maas-admin-only="1"]').forEach((node) => {
+    node.hidden = false;
+  });
+  try {
+    window.dispatchEvent(new CustomEvent('ahek-web-admin-durum', {
+      detail: { admin: admin === true, maasYetkili: true, durum }
+    }));
+  } catch (_) {}
+}
+
+function _webAdminYuzeyleriniDinle(user) {
+  if (_webAdminYuzeyUnsub) {
+    try { _webAdminYuzeyUnsub(); } catch (_) {}
+    _webAdminYuzeyUnsub = null;
+  }
+  if (!user?.uid) {
+    _webAdminYuzeyleriAyarla(false, 'cikis');
+    return;
+  }
+  _webAdminYuzeyleriAyarla(false, 'kontrol');
+  try {
+    _webAdminYuzeyUnsub = onSnapshot(doc(db, 'users', user.uid), (snap) => {
+      const veri = snap.data() || {};
+      const role = String(veri.role || '').toLowerCase();
+      const tier = String(veri.tier || veri.rawTier || '').toLowerCase();
+      const admin = role === 'admin';
+      const maasYetkili = true;
+      _webAdminYuzeyleriAyarla(admin, 'hazir', maasYetkili);
+    }, () => {
+      _webAdminYuzeyleriAyarla(false, 'hata');
+    });
+  } catch (_) {
+    _webAdminYuzeyleriAyarla(false, 'hata');
+  }
+}
+
+onAuthStateChanged(auth, (user) => {
+  const ilkDurum = !_authIlkDurumGeldi;
+  _authIlkDurumGeldi = true;
+  _currentUser = user || null;
+  window._currentUser = _currentUser;
+  window._currentUid = user ? user.uid : null;
+  if (user) _ensureUserDoc(user);
+  _webAdminYuzeyleriniDinle(user);
+  _authDurumuYay(user);
+  _hypBilgiNotuGuncelle(user);
+  const girisBtn = document.getElementById('btnAuthGiris');
+  const kullaniciKart = document.getElementById('authKullanici');
+  const avatar = document.getElementById('authAvatar');
+  const avatarInit = document.getElementById('authAvatarInit');
+  const isim = document.getElementById('authIsim');
+  const mail = document.getElementById('authMail');
+
+  if (user) {
+    const sessizIlkAcilis = ilkDurum && _authHeaderCacheOku()?.uid === user.uid;
+    _authHeaderKullaniciYansit(user);
+    _authHeaderCacheYaz(user);
+    _girisButonuYerelMod(girisBtn, false);
+    if (girisBtn) girisBtn.hidden = true;
+    if (kullaniciKart) kullaniciKart.hidden = false;
+    // Mobil menü link'i: girişi gizle, çıkışı göster
+    const mobilGiris = document.getElementById('mobilAuthGiris');
+    const mobilProfil = document.getElementById('mobilAuthProfil');
+    const mobilCikis = document.getElementById('mobilAuthCikis');
+    if (mobilGiris) mobilGiris.hidden = true;
+    if (mobilProfil) mobilProfil.hidden = false;
+    if (mobilCikis) mobilCikis.hidden = false;
+    const ad = user.displayName || (user.email ? user.email.split('@')[0] : 'Kullanıcı');
+    if (isim) isim.textContent = ad;
+    if (mail) mail.textContent = user.email || '';
+    if (avatar && avatarInit) {
+      if (user.photoURL) {
+        avatar.src = user.photoURL;
+        avatar.hidden = false;
+        avatarInit.hidden = true;
+      } else {
+        avatar.hidden = true;
+        avatarInit.hidden = false;
+        avatarInit.textContent = (ad[0] || '?').toUpperCase();
+      }
+    }
+    _authHeaderHazirGoster();
+    if (_authSayfasiMi()) {
+      window.location.href = _girisSonrasiYonu();
+      return;
+    } else {
+      modalKapat();
+    }
+    // Profil verilerini yükle (realtime)
+    const ayniHesap = _aktifUid === user.uid;
+    const hesapDegisti = _aktifUid && _aktifUid !== user.uid;
+    if (hesapDegisti) {
+      clearTimeout(_kaydetTimer);
+      _yerelKayitBekliyor = false;
+      _sonYerelDegisimZamani = 0;
+      _sonCloudHesapVerisi = null;
+      _bekleyenCloudHesapVerisi = null;
+      _bulutVerisiEkranaYazildi = false;
+    }
+    if (ayniHesap && _snapshotAbort) {
+      return;
+    }
+    _aktifUid = user.uid;
+    _ilkCloudYuklemeHazir = false;
+    _bulutVerisiEkranaYazildi = false;
+    // Manuel senkron: girişte otomatik bulut okuma yapılmaz; yerel veri gösterilir.
+    // Kullanıcı "Buluttan Çek" butonuyla çeker.
+    try { window.hesapAktifUidAyarla?.(user.uid, { bulutYukleniyor: false, hesapDegisti }); } catch (_) {}
+    if (!ilkDurum && Date.now() - _sonGirisIstegiZamani < 15000) {
+      _toast('Giriş yapıldı.', 'bilgi');
+    }
+  } else {
+    _authHeaderCacheSil();
+    _girisButonuYerelMod(girisBtn, !ilkDurum);
+    if (girisBtn) girisBtn.hidden = false;
+    if (kullaniciKart) kullaniciKart.hidden = true;
+    // Mobil menü link'i: girişi göster, çıkışı gizle
+    const mobilGiris = document.getElementById('mobilAuthGiris');
+    const mobilProfil = document.getElementById('mobilAuthProfil');
+    const mobilCikis = document.getElementById('mobilAuthCikis');
+    if (mobilGiris) mobilGiris.hidden = false;
+    if (mobilProfil) mobilProfil.hidden = true;
+    if (mobilCikis) mobilCikis.hidden = true;
+    _authHeaderHazirGoster();
+    kullaniciMenuKapat();
+    // Snapshot'u kapat (cloud bağlantısı kesilsin)
+    // NOT: Form değerleri + localStorage silinmez — anonim modda cihazda kalsın
+    _aktifUid = null;
+    _ilkCloudYuklemeHazir = false;
+    clearTimeout(_kaydetTimer);
+    _yerelKayitBekliyor = false;
+    _sonYerelDegisimZamani = 0;
+    _sonCloudHesapVerisi = null;
+    _bekleyenCloudHesapVerisi = null;
+    _bulutVerisiEkranaYazildi = false;
+    if (_snapshotAbort) { _snapshotAbort(); _snapshotAbort = null; }
+    try { window.hesapAktifUidAyarla?.(null); } catch (_) {}
+    if (!ilkDurum && Date.now() - _sonCikisIstegiZamani < 15000) {
+      _toast('Çıkış yapıldı. Yerel veriler gösteriliyor.', 'basari');
+      const bilgi = document.querySelector('#panel-hypv2 .bilgi-notu');
+      if (bilgi) {
+        bilgi.innerHTML = 'Çıkış yapıldı. Şu an sadece bu cihazdaki yerel veriler gösteriliyor. <a href="giris.html"><b>Giriş yaparsanız</b></a> hesabınıza ait veriler yüklenir.';
+      }
+      // Not: Eskiden burada location.reload() vardı; logout dalı zaten yerel veriyi
+      // forma geri yüklediği için kaldırıldı (sarsıcı "git-gel" hissini önler).
+    }
+    _senkStatus('');
+    if (_authSayfasiMi()) {
+      const formKutu = document.getElementById('girisFormlar');
+      if (formKutu) formKutu.hidden = false;
+      _authSayfaArtiklariniTemizle();
+    }
+  }
+});
+
+// ─────────────────────────────────────────
+// Form submit handler'ları + buton olayları
+// ─────────────────────────────────────────
+
+async function girisYap(email, sifre) {
+  if (!email || !sifre) {
+    durumGoster('E-posta ve şifreyi girin.', 'hata');
+    return;
+  }
+  durumGoster('Giriş kontrol ediliyor...', 'info');
+  try {
+    const botGecti = await turnstileGirisDogrula('giris');
+    if (!botGecti) return;
+    _sonGirisIstegiZamani = Date.now();
+    await signInWithEmailAndPassword(auth, email, sifre);
+  } catch (err) {
+    durumGoster(hataMesaji(err, 'google'), 'hata');
+    turnstileSifirla('giris');
+  }
+}
+
+async function kayitOl(ad, email, sifre) {
+  if (!email || !sifre) {
+    durumGoster('E-posta ve şifreyi girin.', 'hata');
+    return;
+  }
+  if (sifre.length < 6) {
+    durumGoster('Şifre en az 6 karakter olmalı.', 'hata');
+    return;
+  }
+  durumGoster('Hesap oluşturuluyor...', 'info');
+  try {
+    await turnstileRenderEt('kayit');
+    const turnstileToken = turnstileTokenAl('kayit');
+    if (!turnstileToken) {
+      durumGoster('Lutfen bot dogrulamasini tamamlayin.', 'hata');
+      return;
+    }
+    _sonGirisIstegiZamani = Date.now();
+    const sonuc = await kayitOlTurnstileIle({ ad, email, sifre, turnstileToken });
+    const customToken = sonuc?.data?.customToken;
+    const cred = customToken
+      ? await signInWithCustomToken(auth, customToken)
+      : await signInWithEmailAndPassword(auth, email, sifre);
+    if (ad && cred.user) {
+      try { await updateProfile(cred.user, { displayName: ad }); } catch (_) {}
+    }
+    // Doğrulama maili (best effort)
+    try { await sendEmailVerification(cred.user); } catch (_) {}
+    durumGoster('Hesap oluşturuldu. Doğrulama e-postası gönderildi.', 'ok');
+  } catch (err) {
+    durumGoster(hataMesaji(err), 'hata');
+    turnstileSifirla('kayit');
+  }
+}
+
+async function sifreSifirla(email) {
+  if (!email) { durumGoster('E-posta adresinizi girin.', 'hata'); return; }
+  durumGoster('Şifre sıfırlama bağlantısı hazırlanıyor...', 'info');
+  try {
+    await sendPasswordResetEmail(auth, email);
+    sekmeGec('giris');
+    durumGoster('Kayıtlıysa şifre sıfırlama bağlantısı gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.', 'ok');
+    const girisEmail = document.getElementById('girisEmail');
+    if (girisEmail) girisEmail.focus();
+  } catch (err) {
+    if (err?.code === 'auth/user-not-found') {
+      sekmeGec('giris');
+      durumGoster('Kayıtlıysa şifre sıfırlama bağlantısı gönderildi. Gelen kutusu ve spam klasörünü kontrol edin.', 'ok');
+      return;
+    }
+    durumGoster(hataMesaji(err), 'hata');
+  }
+}
+
+async function googleIle(e) {
+  const aktifForm = e?.currentTarget?.closest?.('.auth-form') || document.querySelector('.auth-form.aktif');
+  const amac = aktifForm?.dataset?.form === 'kayit' ? 'kayit' : 'giris';
+  durumGoster('Bot dogrulamasi kontrol ediliyor...', 'info');
+  try {
+    const botGecti = await turnstileGirisDogrula(amac);
+    if (!botGecti) return;
+    durumGoster('Google hesabiniz aciliyor...', 'info');
+    _sonGirisIstegiZamani = Date.now();
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await signInWithPopup(auth, provider);
+  } catch (err) {
+    durumGoster(hataMesaji(err, 'google'), 'hata');
+    turnstileSifirla(amac);
+  }
+}
+async function cikisYap() {
+  try {
+    _sonCikisIstegiZamani = Date.now();
+    _senkStatus('Çıkış yapılıyor…', 'info');
+    await signOut(auth);
+  } catch (err) {
+    alert(hataMesaji(err));
+  }
+}
+
+function _authSayfaArtiklariniTemizle() {
+  if (!_authSayfasiMi()) return;
+  document.querySelectorAll('.giris-sol, .giris-gorsel-kart, #girisBasariKarti').forEach((node) => {
+    node.remove();
+  });
+}
+
+// ─────────────────────────────────────────
+// DOMContentLoaded — olay bağlama
+// ─────────────────────────────────────────
+
+document.addEventListener('DOMContentLoaded', () => {
+  try { sessionStorage.removeItem(_CIKIS_YENILEME_KEY); } catch (_) {}
+  _authSayfaArtiklariniTemizle();
+
+  // v1.24.2: Sayfada auth alanı/modalı eksikse enjekte et (tahmini, uyelik gibi alt sayfalar için).
+  _authHtmlEnjekteEt();
+  _authHeaderCacheUygula();
+
+  // Eklentiden yönlendirilmiş çıkış: site açılır açılmaz oturumu kapat.
+  const urlParam = new URLSearchParams(window.location.search);
+  if (urlParam.get('cikis') === '1' || urlParam.get('logout') === '1') {
+    durumGoster('Çıkış yapıldı. Tekrar giriş yapabilirsiniz.', 'ok');
+    cikisYap().finally(() => {
+      try {
+        const temizUrl = new URL(window.location.href);
+        temizUrl.search = '';
+        window.history.replaceState({}, '', temizUrl.toString());
+      } catch (_) {}
+      if (location.pathname.endsWith('/profil.html')) {
+        window.location.href = 'giris.html';
+      }
+    });
+  }
+
+  // Modal açan butonlar
+  const girisSayfasiUrl = 'giris.html';
+  document.getElementById('btnAuthGiris')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = girisSayfasiUrl;
+  });
+
+  // Mobil header'da da buton varsa (aynı id farklı konum)
+  document.querySelectorAll('[data-auth-ac]').forEach(b =>
+    b.addEventListener('click', () => {
+      window.location.href = girisSayfasiUrl;
+    })
+  );
+
+  // Modal kapat
+  document.querySelectorAll('[data-modal-kapat]').forEach(el =>
+    el.addEventListener('click', modalKapat)
+  );
+
+  // Sekme geçişleri
+  document.querySelectorAll('[data-auth-sekme]').forEach(b =>
+    b.addEventListener('click', () => sekmeGec(b.dataset.authSekme))
+  );
+  document.querySelectorAll('[data-sifre-sifirla]').forEach(b =>
+    b.addEventListener('click', () => {
+      sekmeGec('sifirla');
+      durumGoster('E-postanızı yazın; kayıtlıysa sıfırlama bağlantısı gönderilir.', 'info');
+      const sifirlaEmail = document.getElementById('sifirlaEmail');
+      if (sifirlaEmail) sifirlaEmail.focus();
+    })
+  );
+  document.querySelectorAll('[data-sekme-geri]').forEach(b =>
+    b.addEventListener('click', () => sekmeGec(b.dataset.sekmeGeri))
+  );
+
+  document.querySelectorAll('[data-sifre-goster]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const input = document.getElementById(btn.dataset.sifreGoster || '');
+      if (!input) return;
+      const gosteriliyor = input.type === 'text';
+      input.type = gosteriliyor ? 'password' : 'text';
+      btn.textContent = gosteriliyor ? 'Göster' : 'Gizle';
+      btn.setAttribute('aria-label', gosteriliyor ? 'Şifreyi göster' : 'Şifreyi gizle');
+      btn.setAttribute('aria-pressed', String(!gosteriliyor));
+      input.focus();
+    });
+  });
+
+  // Giriş formu
+  document.getElementById('authGirisForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('girisEmail').value.trim();
+    const sifre = document.getElementById('girisSifre').value;
+    girisYap(email, sifre);
+  });
+
+  // Kayıt formu
+  document.getElementById('authKayitForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const ad = document.getElementById('kayitAd').value.trim();
+    const email = document.getElementById('kayitEmail').value.trim();
+    const sifre = document.getElementById('kayitSifre').value;
+    kayitOl(ad, email, sifre);
+  });
+
+  // Şifre sıfırlama
+  document.getElementById('authSifirlaForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('sifirlaEmail').value.trim();
+    sifreSifirla(email);
+  });
+
+  // Google butonları
+  document.querySelectorAll('[data-google-giris]').forEach(b =>
+    b.addEventListener('click', googleIle)
+  );
+  setTimeout(() => { turnstileRenderEt('giris'); }, 120);
+
+  // Kullanıcı menüsü
+  document.getElementById('authAvatarBtn')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    kullaniciMenuToggle();
+  });
+  document.getElementById('btnAuthProfil')?.addEventListener('click', () => {
+    window.location.href = 'profil.html';
+  });
+  document.getElementById('btnAuthCikis')?.addEventListener('click', () => {
+    kullaniciMenuKapat();
+    cikisYap();
+  });
+  // Mobil menüden çıkış
+  document.getElementById('mobilAuthProfil')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    window.location.href = 'profil.html';
+  });
+  document.getElementById('mobilAuthCikis')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    cikisYap();
+    // Mobil paneli kapat
+    const panel = document.getElementById('mobilPanel');
+    if (panel) panel.hidden = true;
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#authKullanici')) kullaniciMenuKapat();
+  });
+
+  // Escape = modal/dropdown kapat
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const modal = document.getElementById('authModal');
+    if (modal && !modal.hidden) { modalKapat(); return; }
+    kullaniciMenuKapat();
+  });
+});
+
+// ─────────────────────────────────────────
+// v1.24.2: Auth UI otomatik enjekte
+// tahmini.html, uyelik.html gibi alt sayfalara auth.js dahil edildiğinde
+// header-inner içine auth-alan ve body'e auth modalı yoksa yerleştirir.
+// index.html'de zaten mevcut — o zaman no-op.
+// ─────────────────────────────────────────
+
+const _AUTH_ALAN_HTML = `
+  <div class="auth-alan auth-bekliyor">
+    <a id="btnAuthGiris" class="btn-auth-giris" href="giris.html">Giriş Yap</a>
+    <div id="authKullanici" class="auth-kullanici" hidden>
+      <button id="authAvatarBtn" class="auth-avatar-btn" type="button" aria-haspopup="true">
+        <img id="authAvatar" class="auth-avatar" alt="" hidden>
+        <span id="authAvatarInit" class="auth-avatar-init">?</span>
+      </button>
+      <span id="authSenkStatus" class="auth-senk-status">☁ Senkronize</span>
+      <div id="authKullaniciDrop" class="auth-kullanici-drop" hidden>
+        <div class="auth-drop-basini">
+          <div class="auth-drop-isim" id="authIsim">—</div>
+          <div class="auth-drop-mail" id="authMail">—</div>
+        </div>
+        <div class="auth-drop-ayrac"></div>
+        <button id="btnAuthProfil" class="auth-drop-btn" type="button">👤 Profil Sayfam</button>
+        <button id="btnAuthCikis" class="auth-drop-btn" type="button">⏻ Çıkış Yap</button>
+      </div>
+    </div>
+  </div>
+`;
+
+const _AUTH_MODAL_HTML = `
+  <div id="authModal" class="modal" hidden>
+    <div class="modal-backdrop" data-modal-kapat></div>
+    <div class="modal-icerik" role="dialog" aria-labelledby="authBaslik" aria-modal="true">
+      <button class="modal-kapat" type="button" data-modal-kapat aria-label="Kapat">×</button>
+      <div id="authBaslik" class="auth-modal-baslik">
+        <span class="auth-modal-ikon">🩺</span>
+        <div>
+          <div class="auth-modal-baslik-ana">Ahek Plus Hesabı</div>
+          <div class="auth-modal-baslik-alt">Giriş, e-posta doğrulama ve Premium deneme için tek hesap.</div>
+        </div>
+      </div>
+      <div class="auth-sekme-bar" role="tablist">
+        <button class="auth-sekme-btn aktif" type="button" data-auth-sekme="giris" role="tab">Giriş</button>
+        <button class="auth-sekme-btn" type="button" data-auth-sekme="kayit" role="tab">Kayıt</button>
+      </div>
+      <form class="auth-form aktif" id="authGirisForm" data-form="giris" novalidate>
+        <div class="auth-turnstile" data-turnstile-giris aria-label="Bot dogrulamasi"></div>
+        <button type="button" class="btn-google btn-google-ust" data-google-giris>
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Google ile Giriş Yap</span>
+        </button>
+        <div class="auth-ayrac"><span>veya e-posta ile</span></div>
+        <label class="auth-label"><span>E-posta</span><input type="email" id="girisEmail" placeholder="adiniz@kurum.com" required autocomplete="email" inputmode="email"></label>
+        <div class="auth-label"><label class="auth-label-baslik" for="girisSifre">Şifre</label><span class="auth-sifre-alan"><input type="password" id="girisSifre" placeholder="••••••••" required autocomplete="current-password" minlength="6"><button type="button" class="auth-sifre-goster" data-sifre-goster="girisSifre" aria-label="Şifreyi göster" aria-pressed="false">Göster</button></span></div>
+        <button type="submit" class="btn btn-birincil btn-blok">Giriş Yap</button>
+        <button type="button" class="btn-metinsel" data-sifre-sifirla>Şifremi sıfırla</button>
+      </form>
+      <form class="auth-form" id="authKayitForm" data-form="kayit" novalidate>
+        <div class="auth-turnstile" data-turnstile-kayit aria-label="Bot dogrulamasi"></div>
+        <button type="button" class="btn-google btn-google-ust" data-google-giris>
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+          <span>Google ile Kayıt Ol</span>
+        </button>
+        <div class="auth-ayrac"><span>veya e-posta ile</span></div>
+        <label class="auth-label"><span>Ad Soyad <em>(opsiyonel)</em></span><input type="text" id="kayitAd" placeholder="Dr. Ad Soyad" autocomplete="name"></label>
+        <label class="auth-label"><span>E-posta</span><input type="email" id="kayitEmail" placeholder="adiniz@kurum.com" required autocomplete="email" inputmode="email"></label>
+        <div class="auth-label"><label class="auth-label-baslik" for="kayitSifre">Şifre <em>(min. 6 karakter)</em></label><span class="auth-sifre-alan"><input type="password" id="kayitSifre" placeholder="••••••••" required autocomplete="new-password" minlength="6"><button type="button" class="auth-sifre-goster" data-sifre-goster="kayitSifre" aria-label="Şifreyi göster" aria-pressed="false">Göster</button></span></div>
+        <button type="submit" class="btn btn-birincil btn-blok">Kayıt Ol</button>
+        <p class="auth-kvkk">Kayıt olarak <b>KVKK</b> kapsamında e-posta adresinizin giriş amacıyla işlenmesini onaylarsınız. Sağlık/hasta verisi saklanmaz.</p>
+      </form>
+      <form class="auth-form" id="authSifirlaForm" data-form="sifirla" novalidate>
+        <p class="auth-bilgi">E-posta adresinizi yazın. Kayıtlıysa güvenli sıfırlama bağlantısı gönderilir.<br><small style="color:#64748b">Gelen kutusunda yoksa spam klasörünü kontrol edin.</small></p>
+        <label class="auth-label"><span>E-posta</span><input type="email" id="sifirlaEmail" placeholder="adiniz@kurum.com" required autocomplete="email" inputmode="email"></label>
+        <button type="submit" class="btn btn-birincil btn-blok">Güvenli Bağlantı Gönder</button>
+        <button type="button" class="btn-metinsel" data-sekme-geri="giris">← Giriş ekranına dön</button>
+      </form>
+      <div class="auth-durum" id="authDurum" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+`;
+
+function _authHtmlEnjekteEt() {
+  if (_authSayfasiMi() || location.pathname.endsWith('/destek.html')) return;
+
+  // header-inner içine auth-alan (eksikse)
+  const headerInner = document.querySelector('.header-inner');
+  if (headerInner && !headerInner.querySelector('.auth-alan')) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = _AUTH_ALAN_HTML.trim();
+    const authAlan = tempDiv.firstChild;
+    // Mobil butondan önce eklemeye çalış; yoksa sona
+    const mobilBtn = headerInner.querySelector('.nav-mobil');
+    if (mobilBtn) headerInner.insertBefore(authAlan, mobilBtn);
+    else headerInner.appendChild(authAlan);
+  }
+
+  // body'e authModal (eksikse)
+  if (!document.getElementById('authModal')) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = _AUTH_MODAL_HTML.trim();
+    document.body.appendChild(tempDiv.firstChild);
+  }
+}

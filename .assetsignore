@@ -1,0 +1,7 @@
+.wrangler/
+.wrangler/**
+.github/
+.github/**
+.assetsignore
+tests/**
+kurulum-dosyalari/HekimPlus_YaziciKurulum.exe
