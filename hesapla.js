@@ -1353,14 +1353,16 @@ function hypV2Hesapla() {
     hedefSatir.classList.remove('artmaz');
   }
 
-  // KHT oranı (HT+Obz+KVR+DM Tarama) — her kriter %100 cap'li, Y+D dahil
-  // Hedef KHT: H (Y+D hedefi) dolu kriterler için H kullan, yoksa mevcut Y+D
+  // KHT oranı (HT+Obz+KVR+DM Tarama) — her kriter %100 cap'li, sayılan (Y + sayılabilir devir) dahil
+  // Devir yalnızca yapılan ≥ %10 ise sayılır (sayılan kuralı) — diğer tüm hesaplarla tutarlı
+  // Hedef KHT: H (Y+D hedefi) dolu kriterler için H kullan, yoksa mevcut sayılan
   let gT=0, yT=0, yTHedef=0, hVarmi=false;
   ['htTarama','obzTarama','kvrTarama','dmTarama'].forEach(p => {
     const G = _v2Deger(p, 'G');
     const Y = _v2Deger(p, 'Y');
-    const D = _v2Deger(p, 'D');
+    const D_ham = _v2Deger(p, 'D');
     const H = _v2Deger(p, 'H');
+    const D = (G > 0 && Y >= G * 0.10) ? D_ham : 0;
     gT += G;
     yT += Math.min(Y + D, G);
     if (H > 0) { yTHedef += Math.min(H, G); hVarmi = true; }
