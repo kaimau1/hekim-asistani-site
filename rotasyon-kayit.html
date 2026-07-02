@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ahekplus.com https://www.ahekplus.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://us-central1-hekim-asistani.cloudfunctions.net https://cloudflareinsights.com https://challenges.cloudflare.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="robots" content="noindex">
+  <title>Rotasyon Kaydı - Ahek Plus</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="style.css?v=20260620-rotasyon31">
+</head>
+<body class="rotasyon-kayit-sayfasi">
+  <main class="rotasyon-kayit-wrap">
+    <div class="rotasyon-kayit-kart">
+      <div class="rotasyon-kayit-rozet">
+        <span class="logo-icon">🩺</span>
+        <span>Ahek <b>Plus</b></span>
+      </div>
+      <h1>Ankara Tıp SAHU Rotasyon Kaydı</h1>
+      <p class="rotasyon-kayit-aciklama">
+        Bu sayfa yalnizca SAHU rotasyon planlamasi icindir. Kaydinizi tamamlayinca rotasyon
+        sayfasina erisebilirsiniz.
+      </p>
+
+      <form id="rotasyonKayitForm" novalidate>
+        <label class="rk-label">
+          <span>Ad Soyad</span>
+          <input id="rkAd" type="text" autocomplete="name" placeholder="Dr. Ad Soyad" required>
+        </label>
+        <label class="rk-label">
+          <span>E-posta</span>
+          <input id="rkEmail" type="email" inputmode="email" autocomplete="email" placeholder="adiniz@kurum.com" required>
+        </label>
+        <label class="rk-label">
+          <span>Şifre <em>(en az 6 karakter)</em></span>
+          <span class="rk-sifre-alan">
+            <input id="rkSifre" type="password" autocomplete="new-password" minlength="6" placeholder="••••••••" required>
+            <button type="button" id="rkSifreGoster" class="rk-sifre-goster" aria-pressed="false">Göster</button>
+          </span>
+        </label>
+
+        <div id="rkTurnstile" class="rk-turnstile" aria-label="Bot doğrulaması"></div>
+
+        <label class="rk-onay">
+          <input id="rkOnay" type="checkbox" required>
+          <span><a href="kullanim-sartlari.html" target="_blank" rel="noopener"><b>Kullanım Şartları</b></a>'nı ve <a href="kvkk-aydinlatma.html" target="_blank" rel="noopener"><b>KVKK Aydınlatma Metni</b></a>'ni okudum, kabul ediyorum.</span>
+        </label>
+
+        <button type="submit" id="rkGonder" class="btn btn-birincil rk-gonder">Kayıt Ol</button>
+        <div id="rkDurum" class="rk-durum" role="status" aria-live="polite"></div>
+      </form>
+
+      <p class="rk-alt">
+        Zaten hesabınız var mı? <a href="giris.html">Giriş yapın</a>
+      </p>
+      <p class="rk-kvkk">Kayıt olarak KVKK kapsamında e-posta adresinizin giriş amacıyla işlenmesini onaylarsınız. Sağlık/hasta verisi saklanmaz.</p>
+    </div>
+  </main>
+
+  <script type="module" src="rotasyon-kayit.js?v=20260620-rotasyon31"></script>
+</body>
+</html>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com https://apis.google.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://ahekplus.com https://www.ahekplus.com https://*.googleusercontent.com; font-src 'self' data:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://securetoken.googleapis.com https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://firebaseinstallations.googleapis.com https://www.googleapis.com https://us-central1-hekim-asistani.cloudfunctions.net https://cloudflareinsights.com https://challenges.cloudflare.com; frame-src 'self' https://*.firebaseapp.com https://accounts.google.com https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Rotasyon Planlama - Ahek Plus</title>
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="stylesheet" href="style.css?v=20260626-baslangic1">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="index.html#ust" class="logo">
+        <span class="logo-icon">🩺</span>
+        <span class="logo-text">Rotasyon <b>Planlama</b></span>
+      </a>
+      <nav class="ana-nav" aria-label="Ana navigasyon">
+        <a href="index.html#hesapla">HYP Hesapla</a>
+        <a href="maas-hesaplama.html">Maas Hesapla</a>
+        <a href="rotasyon.html" class="active">Rotasyon</a>
+        <a href="profil.html">Profil ve Uyelik</a>
+        <a href="duyurular.html">Duyurular</a>
+        <a href="destek.html">Iletisim</a>
+      </nav>
+      <div class="auth-alan auth-bekliyor">
+        <a id="btnAuthGiris" class="btn-auth-giris" href="giris.html">Giris Yap</a>
+        <div id="authKullanici" class="auth-kullanici" hidden>
+          <button id="authAvatarBtn" class="auth-avatar-btn" type="button" aria-haspopup="true">
+            <img id="authAvatar" class="auth-avatar" alt="" hidden>
+            <span id="authAvatarInit" class="auth-avatar-init">?</span>
+          </button>
+          <span id="authSenkStatus" class="auth-senk-status">Senkronize</span>
+          <div id="authKullaniciDrop" class="auth-kullanici-drop" hidden>
+            <div class="auth-drop-basini">
+              <div class="auth-drop-isim" id="authIsim">-</div>
+              <div class="auth-drop-mail" id="authMail">-</div>
+            </div>
+            <div class="auth-drop-ayrac"></div>
+            <button id="btnAuthProfil" class="auth-drop-btn" type="button">Profil Sayfam</button>
+            <button id="btnAuthCikis" class="auth-drop-btn" type="button">Cikis Yap</button>
+          </div>
+        </div>
+      </div>
+      <button class="nav-mobil" id="btnMobilNav" aria-label="Menu" aria-expanded="false">Menu</button>
+    </div>
+    <nav class="mobil-panel" id="mobilPanel" hidden>
+      <a href="index.html#hesapla">HYP Hesapla</a>
+      <a href="maas-hesaplama.html">Maas Hesapla</a>
+      <a href="rotasyon.html" class="active">Rotasyon</a>
+      <a href="profil.html">Profil ve Uyelik</a>
+      <a href="duyurular.html">Duyurular</a>
+      <a href="destek.html">Iletisim</a>
+      <a href="#" data-auth-ac="giris" class="mobil-giris" id="mobilAuthGiris">Giris / Kayit</a>
+    </nav>
+  </header>
+
+  <main class="rotasyon-sayfasi">
+    <section class="rotasyon-ust">
+      <div class="container rotasyon-ust-ic">
+        <div class="rotasyon-ust-baslik">
+          <h1>Rotasyon Planlama</h1>        </div>
+      </div>
+    </section>
+
+    <section class="container rotasyon-calisma rotasyon-erisim-yok">
+      <div id="rotasyonGate" class="rotasyon-gate">
+        <div class="rotasyon-gate-kart">
+          <div class="rotasyon-gate-ikon rotasyon-gate-spinner" aria-hidden="true">🔒</div>
+          <h2 id="rotasyonGateBaslik">Yukleniyor...</h2>
+          <p id="rotasyonGateMesaj">Oturum bilgileri kontrol ediliyor, lutfen bekleyin.</p>
+          <a id="rotasyonGateGiris" class="btn btn-birincil" href="giris.html" hidden>Giris Yap</a>
+          <div id="rotasyonGateSifreAlani" class="rotasyon-gate-sifre" hidden>
+            <input id="rotasyonGateSifreInput" type="password" placeholder="Sayfa sifresi" autocomplete="off">
+            <button id="rotasyonGateSifreBtn" class="btn btn-birincil" type="button">Giris</button>
+            <p id="rotasyonGateSifreHata" class="rotasyon-gate-sifre-hata" hidden>Yanlis sifre.</p>
+          </div>
+        </div>
+      </div>
+      <div class="rotasyon-arac-cubugu">
+        <div class="rotasyon-donem-bar">
+          <label for="rotasyonDonemSec">Donem</label>
+          <select id="rotasyonDonemSec"></select>
+        </div>
+        <div class="rotasyon-aksiyonlar">
+          <button id="btnRotasyonIslemBaslat" class="btn btn-birincil" type="button">Islem Baslat</button>
+          <button id="btnRotasyonBulutaGonder" class="btn btn-ikincil" type="button" disabled>Buluta Kaydet</button>
+          <button id="btnRotasyonIslemBitir" class="btn btn-birincil" type="button" disabled>Islemi Bitir</button>
+        </div>
+        <div id="rotasyonDurum" class="rotasyon-durum" role="status" aria-live="polite"></div>
+      </div>
+      <div class="rotasyon-baslangic-bar">
+        <label for="rotasyonAsistanBaslangicTarihi">Asistanliga Baslangic Tarihi</label>
+        <input id="rotasyonAsistanBaslangicTarihi" type="date">
+        <button id="btnRotasyonBaslangicKaydet" class="btn btn-ikincil" type="button">Tarihi Kaydet</button>
+        <span id="rotasyonBaslangicDurum" class="rotasyon-baslangic-durum" role="status" aria-live="polite"></span>
+      </div>
+      <div id="rotasyonYetkiUyari" class="rotasyon-uyari" hidden></div>
+      <div id="rotasyonKota" class="rotasyon-kota" role="status" aria-live="polite" hidden></div>
+      <div id="rotasyonMesajlar" class="rotasyon-mesajlar"></div>
+      <div id="rotasyonTablo" class="rotasyon-tablo" aria-label="Rotasyon tablosu"></div>
+      <div id="rotasyonYatayKaydir" class="rotasyon-yatay-kaydir" aria-hidden="true" hidden><div class="rotasyon-yatay-kaydir-ic"></div></div>
+      <aside id="rotasyonKendiListe" class="rotasyon-kendi-liste"></aside>
+      <section id="rotasyonCanli" class="rotasyon-canli" aria-label="Bu ay ve gelecek ay rotasyonda olanlar"></section>
+      <aside id="rotasyonAdminPanel" class="rotasyon-admin-panel" hidden>
+        <div class="rotasyon-admin-grid">
+          <label class="rotasyon-admin-field">
+            <span>Kisi sec</span>
+            <select id="rotasyonHedefKisiSec"></select>
+          </label>
+          <label class="rotasyon-admin-field" data-rotasyon-admin-only>
+            <span>Rol</span>
+            <select id="rotasyonRolSec">
+              <option value="asistan">Asistan</option>
+              <option value="temsilci">Temsilci</option>
+            </select>
+          </label>
+          <label class="rotasyon-admin-field" data-rotasyon-admin-only>
+            <span>Yeni ad soyad</span>
+            <input id="rotasyonUyeYeniAd" type="text" placeholder="Duzeltilmis ad soyad" autocomplete="off">
+          </label>
+          <div class="rotasyon-admin-buttons">
+            <button id="btnRotasyonTemsilciAta" class="btn btn-ikincil" type="button">Rolu Kaydet</button>
+            <button id="btnRotasyonUyeAdDuzenle" class="btn btn-ikincil" type="button" data-rotasyon-admin-only>Adi Duzelt</button>
+            <button id="btnRotasyonDonemOnayla" class="btn btn-ikincil" type="button">Donemi Onayla</button>
+            <button id="btnRotasyonDavetYenile" class="btn btn-ikincil" type="button">Davet Linkini Yenile</button>
+          </div>
+          <label class="rotasyon-admin-field rotasyon-davet-linki">
+            <span>Davet linki</span>
+            <input id="rotasyonDavetLinki" type="text" readonly>
+          </label>
+        </div>
+      </aside>
+      <aside id="rotasyonListePanel" class="rotasyon-liste-panel" hidden>
+        <div class="rotasyon-liste-ust">
+          <h2>Listeler</h2>
+          <div class="rotasyon-liste-butonlar">
+            <button id="btnListeTum" class="btn btn-ikincil" type="button">Tum asistanlar</button>
+            <button id="btnListeYaklasan" class="btn btn-ikincil" type="button">Aktif + gelecek ay</button>
+            <button id="btnListeExcel" class="btn btn-birincil" type="button">Excel'e aktar</button>
+          </div>
+        </div>
+        <div id="rotasyonListeIcerik" class="rotasyon-liste-icerik"></div>
+      </aside>
+    </section>
+  </main>
+
+  <script type="module" src="auth.js?v=20260620-rotasyon39"></script>
+  <script type="module" src="site.js?v=20260620-rotasyon39"></script>
+  <script type="module" src="rotasyon.js?v=20260626-baslangic1"></script>
+</body>
+</html>
